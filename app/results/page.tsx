@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { format } from "date-fns";
+import { format, getDay } from "date-fns";
 
 interface ImageData {
   fileName: string;
@@ -19,9 +19,27 @@ interface SortOptions {
   endDate: string;
   startTime: string;
   endTime: string;
+  weeks: string[]; // Array of selected days of the week
 }
 
 const SORT_OPTIONS_KEY = "imageSortOptions";
+const DAYS_OF_WEEK = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+const DEFAULT_OPTIONS: SortOptions = {
+  startDate: "",
+  endDate: "",
+  startTime: "",
+  endTime: "",
+  weeks: [], // Initialize with empty array
+};
 
 function SorterModal({
   onClose,
@@ -30,33 +48,27 @@ function SorterModal({
   onClose: () => void;
   onApply: (options: SortOptions) => void;
 }) {
-  // Initialize with saved values
   const [options, setOptions] = useState<SortOptions>(() => {
-    if (typeof window === "undefined")
-      return {
-        startDate: "",
-        endDate: "",
-        startTime: "",
-        endTime: "",
-      };
+    if (typeof window === "undefined") return DEFAULT_OPTIONS;
 
     const saved = localStorage.getItem(SORT_OPTIONS_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Ensure weeks array exists
+        return {
+          ...DEFAULT_OPTIONS,
+          ...parsed,
+          weeks: Array.isArray(parsed.weeks) ? parsed.weeks : [],
+        };
       } catch (e) {
         console.error("Error parsing saved sort options:", e);
+        return DEFAULT_OPTIONS;
       }
     }
-    return {
-      startDate: "",
-      endDate: "",
-      startTime: "",
-      endTime: "",
-    };
+    return DEFAULT_OPTIONS;
   });
 
-  // Update localStorage whenever options change
   useEffect(() => {
     localStorage.setItem(SORT_OPTIONS_KEY, JSON.stringify(options));
   }, [options]);
@@ -69,21 +81,24 @@ function SorterModal({
     }));
   };
 
+  const handleWeekChange = (day: string) => {
+    setOptions((prev) => ({
+      ...prev,
+      weeks: prev.weeks.includes(day)
+        ? prev.weeks.filter((d) => d !== day)
+        : [...prev.weeks, day],
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onApply(options);
   };
 
   const handleClear = () => {
-    const emptyOptions = {
-      startDate: "",
-      endDate: "",
-      startTime: "",
-      endTime: "",
-    };
-    setOptions(emptyOptions);
-    localStorage.setItem(SORT_OPTIONS_KEY, JSON.stringify(emptyOptions));
-    onApply(emptyOptions);
+    setOptions(DEFAULT_OPTIONS);
+    localStorage.setItem(SORT_OPTIONS_KEY, JSON.stringify(DEFAULT_OPTIONS));
+    onApply(DEFAULT_OPTIONS);
   };
 
   return (
@@ -151,6 +166,28 @@ function SorterModal({
                 onChange={handleInputChange}
                 className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                Days of Week
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {DAYS_OF_WEEK.map((day) => (
+                  <label
+                    key={day}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={options.weeks?.includes(day) ?? false}
+                      onChange={() => handleWeekChange(day)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{day}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
 

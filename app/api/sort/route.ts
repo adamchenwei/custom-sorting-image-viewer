@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { getDay } from 'date-fns';
 
 interface SortOptions {
   startDate: string;
   endDate: string;
   startTime: string;
   endTime: string;
+  weeks?: string[];
 }
 
 interface ImageData {
@@ -21,6 +23,20 @@ interface ImageData {
   assetPath: string;
 }
 
+// Helper function to convert day name to number (0-6, where 0 is Sunday)
+function getDayNumber(dayName: string): number {
+  const days = {
+    'Sunday': 0,
+    'Monday': 1,
+    'Tuesday': 2,
+    'Wednesday': 3,
+    'Thursday': 4,
+    'Friday': 5,
+    'Saturday': 6
+  };
+  return days[dayName as keyof typeof days] ?? -1;
+}
+
 export async function POST(request: Request) {
   try {
     const options: SortOptions = await request.json();
@@ -31,7 +47,7 @@ export async function POST(request: Request) {
     console.log('Total images before filtering:', data.length);
 
     // Return all images if no filters are applied
-    if (!options.startDate && !options.endDate && !options.startTime && !options.endTime) {
+    if (!options.startDate && !options.endDate && !options.startTime && !options.endTime && (!options.weeks || options.weeks.length === 0)) {
       console.log('No filters applied, returning all data');
       return NextResponse.json(data);
     }
@@ -44,12 +60,10 @@ export async function POST(request: Request) {
         const itemDateString = `${item.yyyy}-${String(item.mm).padStart(2, '0')}-${String(item.dd).padStart(2, '0')}`;
         
         if (options.startDate && itemDateString < options.startDate) {
-          console.log(`Item excluded by start date - Item: ${item.fileName}, Date: ${itemDateString}`);
           return false;
         }
         
         if (options.endDate && itemDateString > options.endDate) {
-          console.log(`Item excluded by end date - Item: ${item.fileName}, Date: ${itemDateString}`);
           return false;
         }
         
@@ -57,26 +71,29 @@ export async function POST(request: Request) {
       });
     }
 
-    console.log('Data after date filtering:', filteredData.length);
-
     // Time filtering
     if (options.startTime || options.endTime) {
-      console.log('Applying time filters:', { startTime: options.startTime, endTime: options.endTime });
-      
       filteredData = filteredData.filter(item => {
         const itemTimeString = `${String(item.hh).padStart(2, '0')}:${String(item.minute).padStart(2, '0')}`;
         
         if (options.startTime && itemTimeString < options.startTime) {
-          console.log(`Item excluded by start time - Item: ${item.fileName}, Time: ${itemTimeString}`);
           return false;
         }
         
         if (options.endTime && itemTimeString > options.endTime) {
-          console.log(`Item excluded by end time - Item: ${item.fileName}, Time: ${itemTimeString}`);
           return false;
         }
         
         return true;
+      });
+    }
+
+    // Week day filtering
+    if (options.weeks && Array.isArray(options.weeks) && options.weeks.length > 0) {
+      filteredData = filteredData.filter(item => {
+        const date = new Date(item.yyyy, item.mm - 1, item.dd);
+        const dayNumber = getDay(date);
+        return options.weeks?.some(dayName => getDayNumber(dayName) === dayNumber) ?? false;
       });
     }
 
