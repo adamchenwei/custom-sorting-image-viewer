@@ -35,6 +35,11 @@ function extractDateTimeFromFileName(fileName: string): ImageData | null {
     match = fileName.match(/Screenshot_(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})(\d{2})_(.+)\.jpg/);
   }
 
+  // Format 3: 20240921_135601295.jpeg (YYYYMMDD_HHMMSSXXX)
+  if (!match) {
+    match = fileName.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\d{3}\.(jpeg|jpg)$/);
+  }
+
   if (match) {
     console.log('Matched filename pattern, groups:', match.slice(1));
     const [_, yyyy, mm, dd, hh, minute, ss, description] = match;
@@ -52,7 +57,7 @@ function extractDateTimeFromFileName(fileName: string): ImageData | null {
       assetPath: '',
       fileDescription: description ? description.replace(/_/g, ' ') : '',
       meta: {
-        value: 'screenshot',
+        value: 'timestamp',
         type: 'image'
       }
     };
@@ -129,14 +134,9 @@ function printSummary(summary: ProcessingSummary, totalFiles: number): void {
   console.log(`Successfully processed: ${summary.processedFiles.length} files`);
   console.log(`Failed to process: ${summary.unprocessedFiles.length} files\n`);
 
-  if (summary.processedFiles.length > 0) {
-    console.log('Successfully processed files:');
-    summary.processedFiles.forEach(file => console.log(`  ✓ ${file}`));
-  }
-
   if (summary.unprocessedFiles.length > 0) {
-    console.log('\nFiles that did not qualify for processing:');
-    summary.unprocessedFiles.forEach(file => console.log(`  ✗ ${file}`));
+    console.log('Failed to process the following files:');
+    summary.unprocessedFiles.forEach(file => console.log(`  • ${file}`));
   }
   console.log('\n=========================');
 }
