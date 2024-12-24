@@ -19,6 +19,11 @@ interface ImageData {
   };
 }
 
+interface ProcessingSummary {
+  processedFiles: string[];
+  unprocessedFiles: string[];
+}
+
 function extractDateTimeFromFileName(fileName: string): ImageData | null {
   console.log('Processing file:', fileName);
   
@@ -60,9 +65,13 @@ function extractDateTimeFromFileName(fileName: string): ImageData | null {
   return null;
 }
 
-function processImagesDirectory(dirPath: string, baseDir: string): ImageData[] {
+function processImagesDirectory(dirPath: string, baseDir: string): { items: ImageData[], summary: ProcessingSummary } {
   console.log('Processing directory:', dirPath);
   const items: ImageData[] = [];
+  const summary: ProcessingSummary = {
+    processedFiles: [],
+    unprocessedFiles: []
+  };
   
   try {
     const files: string[] = fs.readdirSync(dirPath);
@@ -74,7 +83,10 @@ function processImagesDirectory(dirPath: string, baseDir: string): ImageData[] {
 
       if (stat.isDirectory()) {
         console.log('Found subdirectory:', file);
-        items.push(...processImagesDirectory(fullPath, baseDir));
+        const subDirResult = processImagesDirectory(fullPath, baseDir);
+        items.push(...subDirResult.items);
+        summary.processedFiles.push(...subDirResult.summary.processedFiles);
+        summary.unprocessedFiles.push(...subDirResult.summary.unprocessedFiles);
       } else {
         const fileExt: string = path.extname(file).toLowerCase();
         if (['.jpg', '.jpeg'].includes(fileExt)) {
@@ -86,7 +98,13 @@ function processImagesDirectory(dirPath: string, baseDir: string): ImageData[] {
             imageData.assetPath = '/' + relativePath.replace(/\\/g, '/');
             console.log('Added image data:', imageData);
             items.push(imageData);
+            summary.processedFiles.push(file);
+          } else {
+            summary.unprocessedFiles.push(file);
           }
+        } else {
+          // Non-jpg files are considered unprocessed
+          summary.unprocessedFiles.push(file);
         }
       }
     });
@@ -102,7 +120,25 @@ function processImagesDirectory(dirPath: string, baseDir: string): ImageData[] {
     console.error('Error processing directory:', dirPath, error);
   }
 
-  return items;
+  return { items, summary };
+}
+
+function printSummary(summary: ProcessingSummary, totalFiles: number): void {
+  console.log('\n=== Processing Summary ===');
+  console.log(`Total files found: ${totalFiles}`);
+  console.log(`Successfully processed: ${summary.processedFiles.length} files`);
+  console.log(`Failed to process: ${summary.unprocessedFiles.length} files\n`);
+
+  if (summary.processedFiles.length > 0) {
+    console.log('Successfully processed files:');
+    summary.processedFiles.forEach(file => console.log(`  ✓ ${file}`));
+  }
+
+  if (summary.unprocessedFiles.length > 0) {
+    console.log('\nFiles that did not qualify for processing:');
+    summary.unprocessedFiles.forEach(file => console.log(`  ✗ ${file}`));
+  }
+  console.log('\n=========================');
 }
 
 function main() {
@@ -118,12 +154,16 @@ function main() {
     fs.mkdirSync(imagesDir, { recursive: true });
   }
 
-  const imageData: ImageData[] = processImagesDirectory(imagesDir, publicDir);
+  const { items: imageData, summary } = processImagesDirectory(imagesDir, publicDir);
   console.log('Processed image data:', imageData);
 
   const outputPath = path.join(publicDir, 'data.json');
   fs.writeFileSync(outputPath, JSON.stringify(imageData, null, 2));
   console.log(`Written ${imageData.length} items to:`, outputPath);
+
+  // Print processing summary
+  const totalFiles = summary.processedFiles.length + summary.unprocessedFiles.length;
+  printSummary(summary, totalFiles);
 }
 
 main();
