@@ -106,63 +106,35 @@ export default function ResultsPage() {
       setLoading(true);
       setError(null);
 
-      // Move the image and wait for the server response
+      // Move the image and get the new data, passing the current sort options
       const moveResult = await moveImage(
         image.assetPath,
         image.fileName,
-        targetPath
+        targetPath,
+        currentSortOptions || undefined
       );
 
-      if (moveResult) {
-        // Add a small delay to ensure the server has processed the file move
-        await new Promise((resolve) => setTimeout(resolve, 500));
+      if (moveResult.success && moveResult.data) {
+        // Update the images state with the new filtered data
+        setImages(moveResult.data);
 
-        // First, get fresh data from the server
-        const response = await fetch("/api/images");
-        const freshData = await response.json();
-
-        // Then apply the current sort options if they exist
-        if (
-          currentSortOptions &&
-          Object.values(currentSortOptions).some((value) => value !== "")
-        ) {
-          const sortResponse = await fetch("/api/sort", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(currentSortOptions),
-          });
-          const sortedData = await sortResponse.json();
-          setImages(sortedData);
-
-          // Update selected image if needed
-          if (sortedData.length > 0) {
-            const movedImageIndex = sortedData.findIndex(
-              (img: ImageData) => img.fileName === image.fileName
-            );
-            if (movedImageIndex !== -1) {
-              setSelectedImage(sortedData[movedImageIndex]);
-              setSelectedIndex(movedImageIndex);
-            } else {
-              setSelectedImage(sortedData[0]);
-              setSelectedIndex(0);
-            }
+        // Update selected image if needed
+        if (moveResult.data.length > 0) {
+          const movedImageIndex = moveResult.data.findIndex(
+            (img: ImageData) => img.fileName === image.fileName
+          );
+          if (movedImageIndex !== -1) {
+            setSelectedImage(moveResult.data[movedImageIndex]);
+            setSelectedIndex(movedImageIndex);
+          } else {
+            // If moved image is no longer in view (filtered out), select the first visible image
+            setSelectedImage(moveResult.data[0]);
+            setSelectedIndex(0);
           }
         } else {
-          setImages(freshData);
-
-          // Update selected image if needed
-          if (freshData.length > 0) {
-            const movedImageIndex = freshData.findIndex(
-              (img: ImageData) => img.fileName === image.fileName
-            );
-            if (movedImageIndex !== -1) {
-              setSelectedImage(freshData[movedImageIndex]);
-              setSelectedIndex(movedImageIndex);
-            } else {
-              setSelectedImage(freshData[0]);
-              setSelectedIndex(0);
-            }
-          }
+          // No images left in view
+          setSelectedImage(null);
+          setSelectedIndex(-1);
         }
       }
 
