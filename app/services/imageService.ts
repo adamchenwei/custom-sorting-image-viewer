@@ -45,8 +45,14 @@ export async function moveImage(assetPath: string, fileName: string, targetPath:
       throw new Error(result.error || 'Failed to move image');
     }
 
+    // Revalidate the cache
+    await fetch('/api/revalidate', { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
     console.log('Move response:', result);
-    return true;
+    return result.success === true;
   } catch (error) {
     console.error('Error in moveImage service:', error);
     throw error;

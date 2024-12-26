@@ -19,6 +19,14 @@ interface ImageData {
   ss: number;
 }
 
+interface SortOptions {
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  weeks: string[];
+}
+
 export default function ResultsPage() {
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
@@ -28,49 +36,51 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [imageToMove, setImageToMove] = useState<ImageData | null>(null);
+  const [currentSortOptions, setCurrentSortOptions] =
+    useState<SortOptions | null>(null);
+
+  const loadImagesWithSort = async (sortOptions: SortOptions | null) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (
+        sortOptions &&
+        Object.values(sortOptions).some((value) => value !== "")
+      ) {
+        const response = await fetch("/api/sort", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sortOptions),
+        });
+        const data = await response.json();
+        setImages(data);
+        if (data.length > 0) {
+          setSelectedImage(data[0]);
+          setSelectedIndex(0);
+        }
+      } else {
+        const response = await fetch("/api/images");
+        const data = await response.json();
+        setImages(data);
+        if (data.length > 0) {
+          setSelectedImage(data[0]);
+          setSelectedIndex(0);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading images:", err);
+      setError("Failed to load images");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadImagesWithSavedSort = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const savedOptions = localStorage.getItem("imageSortOptions");
-        const sortOptions = savedOptions ? JSON.parse(savedOptions) : null;
-
-        if (
-          sortOptions &&
-          Object.values(sortOptions).some((value) => value !== "")
-        ) {
-          const response = await fetch("/api/sort", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(sortOptions),
-          });
-          const data = await response.json();
-          setImages(data);
-          if (data.length > 0) {
-            setSelectedImage(data[0]);
-            setSelectedIndex(0);
-          }
-        } else {
-          const response = await fetch("/api/images");
-          const data = await response.json();
-          setImages(data);
-          if (data.length > 0) {
-            setSelectedImage(data[0]);
-            setSelectedIndex(0);
-          }
-        }
-      } catch (err) {
-        console.error("Error loading images:", err);
-        setError("Failed to load images");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadImagesWithSavedSort();
+    const savedOptions = localStorage.getItem("imageSortOptions");
+    const sortOptions = savedOptions ? JSON.parse(savedOptions) : null;
+    setCurrentSortOptions(sortOptions);
+    loadImagesWithSort(sortOptions);
   }, []);
 
   const handleKeyDown = useCallback(
@@ -96,12 +106,65 @@ export default function ResultsPage() {
       setLoading(true);
       setError(null);
 
-      await moveImage(image.assetPath, image.fileName, targetPath);
+      // Move the image and wait for the server response
+      const moveResult = await moveImage(
+        image.assetPath,
+        image.fileName,
+        targetPath
+      );
 
-      // Refresh the image list
-      const response = await fetch("/api/images");
-      const data = await response.json();
-      setImages(data);
+      if (moveResult) {
+        // Add a small delay to ensure the server has processed the file move
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // First, get fresh data from the server
+        const response = await fetch("/api/images");
+        const freshData = await response.json();
+
+        // Then apply the current sort options if they exist
+        if (
+          currentSortOptions &&
+          Object.values(currentSortOptions).some((value) => value !== "")
+        ) {
+          const sortResponse = await fetch("/api/sort", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(currentSortOptions),
+          });
+          const sortedData = await sortResponse.json();
+          setImages(sortedData);
+
+          // Update selected image if needed
+          if (sortedData.length > 0) {
+            const movedImageIndex = sortedData.findIndex(
+              (img: ImageData) => img.fileName === image.fileName
+            );
+            if (movedImageIndex !== -1) {
+              setSelectedImage(sortedData[movedImageIndex]);
+              setSelectedIndex(movedImageIndex);
+            } else {
+              setSelectedImage(sortedData[0]);
+              setSelectedIndex(0);
+            }
+          }
+        } else {
+          setImages(freshData);
+
+          // Update selected image if needed
+          if (freshData.length > 0) {
+            const movedImageIndex = freshData.findIndex(
+              (img: ImageData) => img.fileName === image.fileName
+            );
+            if (movedImageIndex !== -1) {
+              setSelectedImage(freshData[movedImageIndex]);
+              setSelectedIndex(movedImageIndex);
+            } else {
+              setSelectedImage(freshData[0]);
+              setSelectedIndex(0);
+            }
+          }
+        }
+      }
 
       setShowMoveModal(false);
       setImageToMove(null);
@@ -148,6 +211,22 @@ export default function ResultsPage() {
     }
   };
 
+  const handleApplySort = async (options: SortOptions) => {
+    try {
+      setLoading(true);
+      setError(null);
+      setCurrentSortOptions(options);
+      await loadImagesWithSort(options);
+      setShowSorter(false);
+    } catch (err) {
+      console.error("Error applying sort:", err);
+      setError("Failed to apply sorting");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Rest of the component remains the same...
   return (
     <div className="flex h-screen">
       {/* Left side - Image list */}
@@ -199,7 +278,7 @@ export default function ResultsPage() {
                   fill
                   sizes="64px"
                   className="rounded object-cover"
-                  priority={index < 10} // Prioritize loading first 10 images
+                  priority={index < 10}
                 />
               </div>
 
@@ -296,32 +375,7 @@ export default function ResultsPage() {
       {showSorter && (
         <SorterModal
           onClose={() => setShowSorter(false)}
-          onApply={async (options) => {
-            try {
-              setLoading(true);
-              setError(null);
-              const response = await fetch("/api/sort", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(options),
-              });
-              const sortedData = await response.json();
-              setImages(sortedData);
-              if (sortedData.length > 0) {
-                setSelectedImage(sortedData[0]);
-                setSelectedIndex(0);
-              } else {
-                setSelectedImage(null);
-                setSelectedIndex(-1);
-              }
-              setShowSorter(false);
-            } catch (err) {
-              console.error("Error applying sort:", err);
-              setError("Failed to apply sorting");
-            } finally {
-              setLoading(false);
-            }
-          }}
+          onApply={handleApplySort}
         />
       )}
     </div>

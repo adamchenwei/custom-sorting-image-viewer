@@ -192,7 +192,7 @@ export default function ResultsPage() {
           {images.map((image, index) => (
             <div
               key={image.assetPath}
-              className={`p-2 cursor-pointer rounded flex justify-between items-start group ${
+              className={`p-2 cursor-pointer rounded flex items-start group ${
                 selectedImage?.assetPath === image.assetPath
                   ? "bg-blue-600 text-white"
                   : "hover:bg-blue-400"
@@ -202,8 +202,21 @@ export default function ResultsPage() {
                 setSelectedIndex(index);
               }}
             >
-              <div className="flex-1">
-                <div className="break-words">{image.fileName}</div>
+              {/* Thumbnail Container */}
+              <div className="flex-shrink-0 mr-3 relative w-16 h-16">
+                <Image
+                  src={image.assetPath}
+                  alt={image.fileName}
+                  fill
+                  sizes="64px"
+                  className="rounded object-cover"
+                  priority={index < 10} // Prioritize loading first 10 images
+                />
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="break-words truncate">{image.fileName}</div>
                 <div
                   className={`text-sm ${
                     selectedImage?.assetPath === image.assetPath
@@ -224,35 +237,39 @@ export default function ResultsPage() {
                   )}
                 </div>
               </div>
-              <button
-                className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
-                  selectedImage?.assetPath === image.assetPath
-                    ? "hover:bg-blue-700 text-white"
-                    : "hover:bg-blue-500 text-gray-600 hover:text-white"
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(image, index);
-                }}
-                aria-label="Delete image"
-              >
-                <X size={16} />
-              </button>
-              <button
-                className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity mr-2 ${
-                  selectedImage?.assetPath === image.assetPath
-                    ? "hover:bg-blue-700 text-white"
-                    : "hover:bg-blue-500 text-gray-600 hover:text-white"
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setImageToMove(image);
-                  setShowMoveModal(true);
-                }}
-                aria-label="Move image"
-              >
-                <ArrowRight size={16} />
-              </button>
+
+              {/* Action Buttons */}
+              <div className="flex items-center ml-2 flex-shrink-0">
+                <button
+                  className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
+                    selectedImage?.assetPath === image.assetPath
+                      ? "hover:bg-blue-700 text-white"
+                      : "hover:bg-blue-500 text-gray-600 hover:text-white"
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(image, index);
+                  }}
+                  aria-label="Delete image"
+                >
+                  <X size={16} />
+                </button>
+                <button
+                  className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
+                    selectedImage?.assetPath === image.assetPath
+                      ? "hover:bg-blue-700 text-white"
+                      : "hover:bg-blue-500 text-gray-600 hover:text-white"
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImageToMove(image);
+                    setShowMoveModal(true);
+                  }}
+                  aria-label="Move image"
+                >
+                  <ArrowRight size={16} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -1400,7 +1417,7 @@ export default function ResultsPage() {
           {images.map((image, index) => (
             <div
               key={image.assetPath}
-              className={`p-2 cursor-pointer rounded flex justify-between items-start group ${
+              className={`p-2 cursor-pointer rounded flex items-start group ${
                 selectedImage?.assetPath === image.assetPath
                   ? "bg-blue-600 text-white"
                   : "hover:bg-blue-400"
@@ -1410,8 +1427,21 @@ export default function ResultsPage() {
                 setSelectedIndex(index);
               }}
             >
-              <div className="flex-1">
-                <div className="break-words">{image.fileName}</div>
+              {/* Thumbnail Container */}
+              <div className="flex-shrink-0 mr-3 relative w-16 h-16">
+                <Image
+                  src={image.assetPath}
+                  alt={image.fileName}
+                  fill
+                  sizes="64px"
+                  className="rounded object-cover"
+                  priority={index < 10} // Prioritize loading first 10 images
+                />
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="break-words truncate">{image.fileName}</div>
                 <div
                   className={`text-sm ${
                     selectedImage?.assetPath === image.assetPath
@@ -1432,35 +1462,39 @@ export default function ResultsPage() {
                   )}
                 </div>
               </div>
-              <button
-                className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
-                  selectedImage?.assetPath === image.assetPath
-                    ? "hover:bg-blue-700 text-white"
-                    : "hover:bg-blue-500 text-gray-600 hover:text-white"
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(image, index);
-                }}
-                aria-label="Delete image"
-              >
-                <X size={16} />
-              </button>
-              <button
-                className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity mr-2 ${
-                  selectedImage?.assetPath === image.assetPath
-                    ? "hover:bg-blue-700 text-white"
-                    : "hover:bg-blue-500 text-gray-600 hover:text-white"
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setImageToMove(image);
-                  setShowMoveModal(true);
-                }}
-                aria-label="Move image"
-              >
-                <ArrowRight size={16} />
-              </button>
+
+              {/* Action Buttons */}
+              <div className="flex items-center ml-2 flex-shrink-0">
+                <button
+                  className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
+                    selectedImage?.assetPath === image.assetPath
+                      ? "hover:bg-blue-700 text-white"
+                      : "hover:bg-blue-500 text-gray-600 hover:text-white"
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(image, index);
+                  }}
+                  aria-label="Delete image"
+                >
+                  <X size={16} />
+                </button>
+                <button
+                  className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
+                    selectedImage?.assetPath === image.assetPath
+                      ? "hover:bg-blue-700 text-white"
+                      : "hover:bg-blue-500 text-gray-600 hover:text-white"
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImageToMove(image);
+                    setShowMoveModal(true);
+                  }}
+                  aria-label="Move image"
+                >
+                  <ArrowRight size={16} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
