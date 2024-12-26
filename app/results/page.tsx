@@ -2,8 +2,10 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { format, getDay } from "date-fns";
-import { X } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { deleteImage } from "../services/imageService";
+import { MoveModal } from "../components/MoveModal";
+import { moveImage } from "../services/imageService";
 
 interface ImageData {
   fileName: string;
@@ -230,6 +232,8 @@ export default function ResultsPage() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [imageToMove, setImageToMove] = useState<ImageData | null>(null);
 
   useEffect(() => {
     const loadImagesWithSavedSort = async () => {
@@ -287,7 +291,27 @@ export default function ResultsPage() {
     },
     [selectedIndex, images]
   );
+  const handleMove = async (image: ImageData, targetPath: string) => {
+    try {
+      setLoading(true);
+      setError(null);
 
+      await moveImage(image.assetPath, image.fileName, targetPath);
+
+      // Refresh the image list
+      const response = await fetch("/api/images");
+      const data = await response.json();
+      setImages(data);
+
+      setShowMoveModal(false);
+      setImageToMove(null);
+    } catch (err) {
+      console.error("Error moving image:", err);
+      setError("Failed to move image");
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleDelete = async (image: ImageData, index: number) => {
     if (!window.confirm("Are you sure you want to delete this image?")) {
       return;
@@ -407,8 +431,38 @@ export default function ResultsPage() {
               >
                 <X size={16} />
               </button>
+              <button
+                className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity mr-2 ${
+                  selectedImage?.assetPath === image.assetPath
+                    ? "hover:bg-blue-700 text-white"
+                    : "hover:bg-blue-500 text-gray-600 hover:text-white"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImageToMove(image);
+                  setShowMoveModal(true);
+                }}
+                aria-label="Move image"
+              >
+                <ArrowRight size={16} />
+              </button>
             </div>
           ))}
+
+          {showMoveModal && (
+            <MoveModal
+              isOpen={showMoveModal}
+              onClose={() => {
+                setShowMoveModal(false);
+                setImageToMove(null);
+              }}
+              onSubmit={(targetPath) => {
+                if (imageToMove) {
+                  handleMove(imageToMove, targetPath);
+                }
+              }}
+            />
+          )}
         </div>
       </div>
 
