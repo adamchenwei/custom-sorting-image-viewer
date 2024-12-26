@@ -2,6 +2,8 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { format, getDay } from "date-fns";
+import { X } from "lucide-react";
+import { deleteImage } from "../services/imageService";
 
 interface ImageData {
   fileName: string;
@@ -286,6 +288,41 @@ export default function ResultsPage() {
     [selectedIndex, images]
   );
 
+  const handleDelete = async (image: ImageData, index: number) => {
+    if (!window.confirm("Are you sure you want to delete this image?")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log("Deleting image:", image);
+
+      await deleteImage(image.assetPath, image.fileName);
+
+      // Update local state
+      setImages((prevImages) =>
+        prevImages.filter((img) => img.assetPath !== image.assetPath)
+      );
+
+      // If the deleted image was selected, select the next available image
+      if (selectedImage?.assetPath === image.assetPath) {
+        const nextIndex = Math.min(index, images.length - 2);
+        if (nextIndex >= 0) {
+          setSelectedImage(images[nextIndex]);
+          setSelectedIndex(nextIndex);
+        } else {
+          setSelectedImage(null);
+          setSelectedIndex(-1);
+        }
+      }
+    } catch (error) {
+      console.error("Error in handleDelete:", error);
+      setError("Failed to delete image");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -324,36 +361,52 @@ export default function ResultsPage() {
           {images.map((image, index) => (
             <div
               key={image.assetPath}
+              className={`p-2 cursor-pointer rounded flex justify-between items-start group ${
+                selectedImage?.assetPath === image.assetPath
+                  ? "bg-blue-600 text-white"
+                  : "hover:bg-blue-400"
+              }`}
               onClick={() => {
                 setSelectedImage(image);
                 setSelectedIndex(index);
               }}
-              className={`p-2 cursor-pointer rounded ${
-                selectedImage?.assetPath === image.assetPath
-                  ? "bg-blue-600 text-white" // Changed from bg-blue-100 to bg-blue-600 and added text-white
-                  : "hover:bg-blue-400"
-              }`}
             >
-              <div className="break-words">{image.fileName}</div>
-              <div
-                className={`text-sm ${
-                  selectedImage?.assetPath === image.assetPath
-                    ? "text-blue-100"
-                    : "text-gray-500"
-                }`}
-              >
-                {format(
-                  new Date(
-                    image.yyyy,
-                    image.mm - 1,
-                    image.dd,
-                    image.hh,
-                    image.minute,
-                    image.ss
-                  ),
-                  "PPpp"
-                )}
+              <div className="flex-1">
+                <div className="break-words">{image.fileName}</div>
+                <div
+                  className={`text-sm ${
+                    selectedImage?.assetPath === image.assetPath
+                      ? "text-blue-100"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {format(
+                    new Date(
+                      image.yyyy,
+                      image.mm - 1,
+                      image.dd,
+                      image.hh,
+                      image.minute,
+                      image.ss
+                    ),
+                    "PPpp"
+                  )}
+                </div>
               </div>
+              <button
+                className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
+                  selectedImage?.assetPath === image.assetPath
+                    ? "hover:bg-blue-700 text-white"
+                    : "hover:bg-blue-500 text-gray-600 hover:text-white"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(image, index);
+                }}
+                aria-label="Delete image"
+              >
+                <X size={16} />
+              </button>
             </div>
           ))}
         </div>

@@ -52,7 +52,9 @@ declare -a EXCLUDED_PATHS=()
 
 declare -a customTextList=(
     ""
+    "This app uses tailwind for css, typescript and nodejs v20"
     "This app uses typescript and nodejs v20"
+    "This app used for browsing images in productive way to analysis and perform crud on the images"
     ""
 )
 
@@ -60,6 +62,7 @@ declare -a externalLibs=(
     "/Users/adamchenwei/www/custom-sorting-image-viewer/app"
     "/Users/adamchenwei/www/custom-sorting-image-viewer/tsconfig.json"
     "/Users/adamchenwei/www/custom-sorting-image-viewer/package.json"
+    "/Users/adamchenwei/www/custom-sorting-image-viewer/tailwind.config.ts"
 
 )
 

@@ -1,18 +1,18 @@
 # Custom Requirements
 - 
+- This app uses tailwind for css, typescript and nodejs v20
 - This app uses typescript and nodejs v20
+- This app used for browsing images in productive way to analysis and perform crud on the images
 - 
 
 # Content from directory: /Users/adamchenwei/www/custom-sorting-image-viewer/app
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer/app/results/page.tsx
 
-// app/results/page.tsx
 "use client";
-
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { format } from "date-fns";
+import { format, getDay } from "date-fns";
 
 interface ImageData {
   fileName: string;
@@ -30,9 +30,27 @@ interface SortOptions {
   endDate: string;
   startTime: string;
   endTime: string;
+  weeks: string[]; // Array of selected days of the week
 }
 
 const SORT_OPTIONS_KEY = "imageSortOptions";
+const DAYS_OF_WEEK = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+const DEFAULT_OPTIONS: SortOptions = {
+  startDate: "",
+  endDate: "",
+  startTime: "",
+  endTime: "",
+  weeks: [], // Initialize with empty array
+};
 
 function SorterModal({
   onClose,
@@ -41,33 +59,27 @@ function SorterModal({
   onClose: () => void;
   onApply: (options: SortOptions) => void;
 }) {
-  // Initialize with saved values
   const [options, setOptions] = useState<SortOptions>(() => {
-    if (typeof window === "undefined")
-      return {
-        startDate: "",
-        endDate: "",
-        startTime: "",
-        endTime: "",
-      };
+    if (typeof window === "undefined") return DEFAULT_OPTIONS;
 
     const saved = localStorage.getItem(SORT_OPTIONS_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Ensure weeks array exists
+        return {
+          ...DEFAULT_OPTIONS,
+          ...parsed,
+          weeks: Array.isArray(parsed.weeks) ? parsed.weeks : [],
+        };
       } catch (e) {
         console.error("Error parsing saved sort options:", e);
+        return DEFAULT_OPTIONS;
       }
     }
-    return {
-      startDate: "",
-      endDate: "",
-      startTime: "",
-      endTime: "",
-    };
+    return DEFAULT_OPTIONS;
   });
 
-  // Update localStorage whenever options change
   useEffect(() => {
     localStorage.setItem(SORT_OPTIONS_KEY, JSON.stringify(options));
   }, [options]);
@@ -80,21 +92,24 @@ function SorterModal({
     }));
   };
 
+  const handleWeekChange = (day: string) => {
+    setOptions((prev) => ({
+      ...prev,
+      weeks: prev.weeks.includes(day)
+        ? prev.weeks.filter((d) => d !== day)
+        : [...prev.weeks, day],
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onApply(options);
   };
 
   const handleClear = () => {
-    const emptyOptions = {
-      startDate: "",
-      endDate: "",
-      startTime: "",
-      endTime: "",
-    };
-    setOptions(emptyOptions);
-    localStorage.setItem(SORT_OPTIONS_KEY, JSON.stringify(emptyOptions));
-    onApply(emptyOptions);
+    setOptions(DEFAULT_OPTIONS);
+    localStorage.setItem(SORT_OPTIONS_KEY, JSON.stringify(DEFAULT_OPTIONS));
+    onApply(DEFAULT_OPTIONS);
   };
 
   return (
@@ -113,7 +128,7 @@ function SorterModal({
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-gray-700">
                 Start Date
               </label>
               <input
@@ -121,23 +136,25 @@ function SorterModal({
                 name="startDate"
                 value={options.startDate}
                 onChange={handleInputChange}
-                className="w-full border rounded p-2"
+                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">End Date</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700">
+                End Date
+              </label>
               <input
                 type="date"
                 name="endDate"
                 value={options.endDate}
                 onChange={handleInputChange}
-                className="w-full border rounded p-2"
+                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-gray-700">
                 Start Time
               </label>
               <input
@@ -145,19 +162,43 @@ function SorterModal({
                 name="startTime"
                 value={options.startTime}
                 onChange={handleInputChange}
-                className="w-full border rounded p-2"
+                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">End Time</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700">
+                End Time
+              </label>
               <input
                 type="time"
                 name="endTime"
                 value={options.endTime}
                 onChange={handleInputChange}
-                className="w-full border rounded p-2"
+                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                Days of Week
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {DAYS_OF_WEEK.map((day) => (
+                  <label
+                    key={day}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={options.weeks?.includes(day) ?? false}
+                      onChange={() => handleWeekChange(day)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{day}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -165,7 +206,7 @@ function SorterModal({
             <button
               type="button"
               onClick={handleClear}
-              className="px-4 py-2 text-red-600 hover:text-red-800"
+              className="px-4 py-2 text-red-600 hover:text-red-800 font-medium"
             >
               Clear All
             </button>
@@ -179,7 +220,7 @@ function SorterModal({
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-medium"
               >
                 Apply
               </button>
@@ -199,18 +240,15 @@ export default function ResultsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Load initial images with saved sort options
   useEffect(() => {
     const loadImagesWithSavedSort = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // First get the saved sort options
         const savedOptions = localStorage.getItem(SORT_OPTIONS_KEY);
         const sortOptions = savedOptions ? JSON.parse(savedOptions) : null;
 
-        // If there are saved options with values, apply them
         if (
           sortOptions &&
           Object.values(sortOptions).some((value) => value !== "")
@@ -227,7 +265,6 @@ export default function ResultsPage() {
             setSelectedIndex(0);
           }
         } else {
-          // Otherwise load all images
           const response = await fetch("/api/images");
           const data = await response.json();
           setImages(data);
@@ -265,7 +302,6 @@ export default function ResultsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  // Rest of your existing ResultsPage component code...
   return (
     <div className="flex h-screen">
       {/* Left side - Image list */}
@@ -305,12 +341,18 @@ export default function ResultsPage() {
               }}
               className={`p-2 cursor-pointer rounded ${
                 selectedImage?.assetPath === image.assetPath
-                  ? "bg-blue-100"
-                  : "hover:bg-gray-100"
+                  ? "bg-blue-600 text-white" // Changed from bg-blue-100 to bg-blue-600 and added text-white
+                  : "hover:bg-blue-400"
               }`}
             >
               <div className="break-words">{image.fileName}</div>
-              <div className="text-sm text-gray-500">
+              <div
+                className={`text-sm ${
+                  selectedImage?.assetPath === image.assetPath
+                    ? "text-blue-100"
+                    : "text-gray-500"
+                }`}
+              >
                 {format(
                   new Date(
                     image.yyyy,
@@ -400,8 +442,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Create Next App",
-  description: "Generated by create next app",
+  title: "Custom Sorting Image Viewer",
+  description: "Custom Sorting Image Viewer",
 };
 
 export default function RootLayout({
@@ -423,16 +465,17 @@ export default function RootLayout({
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer/app/api/sort/route.ts
 
-// app/api/sort/route.ts
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { getDay } from 'date-fns';
 
 interface SortOptions {
   startDate: string;
   endDate: string;
   startTime: string;
   endTime: string;
+  weeks?: string[];
 }
 
 interface ImageData {
@@ -447,78 +490,88 @@ interface ImageData {
   assetPath: string;
 }
 
+// Helper function to convert day name to number (0-6, where 0 is Sunday)
+function getDayNumber(dayName: string): number {
+  const days = {
+    'Sunday': 0,
+    'Monday': 1,
+    'Tuesday': 2,
+    'Wednesday': 3,
+    'Thursday': 4,
+    'Friday': 5,
+    'Saturday': 6
+  };
+  return days[dayName as keyof typeof days] ?? -1;
+}
+
 export async function POST(request: Request) {
   try {
-    // Add proper headers for JSON response
-    const headers = {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-store'
-    };
-
     const options: SortOptions = await request.json();
+    console.log('Received sort options:', options);
+
     const dataPath = path.join(process.cwd(), 'public', 'data.json');
     const data: ImageData[] = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+    console.log('Total images before filtering:', data.length);
 
     // Return all images if no filters are applied
-    if (!options.startDate && !options.endDate && !options.startTime && !options.endTime) {
-      return new NextResponse(JSON.stringify(data), { headers });
+    if (!options.startDate && !options.endDate && !options.startTime && !options.endTime && (!options.weeks || options.weeks.length === 0)) {
+      console.log('No filters applied, returning all data');
+      return NextResponse.json(data);
     }
 
-    const filteredData = data.filter((item: ImageData) => {
-      // Create date object with all components
-      const itemDate = new Date(
-        item.yyyy,
-        item.mm - 1,
-        item.dd,
-        item.hh,
-        item.minute,
-        item.ss
-      );
+    let filteredData = [...data];
 
-      // Date filtering
-      if (options.startDate) {
-        const startDate = new Date(options.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        const itemDateOnly = new Date(item.yyyy, item.mm - 1, item.dd, 0, 0, 0);
-        if (itemDateOnly < startDate) return false;
-      }
-
-      if (options.endDate) {
-        const endDate = new Date(options.endDate);
-        endDate.setHours(23, 59, 59, 999);
-        const itemDateOnly = new Date(item.yyyy, item.mm - 1, item.dd, 23, 59, 59);
-        if (itemDateOnly > endDate) return false;
-      }
-
-      // Time filtering
-      if (options.startTime || options.endTime) {
-        const itemMinutes = item.hh * 60 + item.minute;
-
-        if (options.startTime) {
-          const [startHour, startMin] = options.startTime.split(':').map(Number);
-          const startMinutes = startHour * 60 + startMin;
-          if (itemMinutes < startMinutes) return false;
+    // Date filtering
+    if (options.startDate || options.endDate) {
+      filteredData = filteredData.filter(item => {
+        const itemDateString = `${item.yyyy}-${String(item.mm).padStart(2, '0')}-${String(item.dd).padStart(2, '0')}`;
+        
+        if (options.startDate && itemDateString < options.startDate) {
+          return false;
         }
-
-        if (options.endTime) {
-          const [endHour, endMin] = options.endTime.split(':').map(Number);
-          const endMinutes = endHour * 60 + endMin;
-          if (itemMinutes > endMinutes) return false;
+        
+        if (options.endDate && itemDateString > options.endDate) {
+          return false;
         }
-      }
+        
+        return true;
+      });
+    }
 
-      return true;
-    });
+    // Time filtering
+    if (options.startTime || options.endTime) {
+      filteredData = filteredData.filter(item => {
+        const itemTimeString = `${String(item.hh).padStart(2, '0')}:${String(item.minute).padStart(2, '0')}`;
+        
+        if (options.startTime && itemTimeString < options.startTime) {
+          return false;
+        }
+        
+        if (options.endTime && itemTimeString > options.endTime) {
+          return false;
+        }
+        
+        return true;
+      });
+    }
 
-    return new NextResponse(JSON.stringify(filteredData), { headers });
+    // Week day filtering
+    if (options.weeks && Array.isArray(options.weeks) && options.weeks.length > 0) {
+      filteredData = filteredData.filter(item => {
+        const date = new Date(item.yyyy, item.mm - 1, item.dd);
+        const dayNumber = getDay(date);
+        return options.weeks?.some(dayName => getDayNumber(dayName) === dayNumber) ?? false;
+      });
+    }
+
+    console.log('Final filtered data length:', filteredData.length);
+    return NextResponse.json(filteredData);
+
   } catch (error) {
     console.error('Sort API Error:', error);
-    return new NextResponse(
-      JSON.stringify({ error: 'Internal Server Error' }), 
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
     );
   }
 }
@@ -712,16 +765,37 @@ export default function Home() {
   }
 }
 
+// /Users/adamchenwei/www/custom-sorting-image-viewer/tailwind.config.ts
+
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+      },
+    },
+  },
+  plugins: [],
+};
+export default config;
+
+
 # Content from main directory: /Users/adamchenwei/www/custom-sorting-image-viewer/
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer//app/results/page.tsx
 
-// app/results/page.tsx
 "use client";
-
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { format } from "date-fns";
+import { format, getDay } from "date-fns";
 
 interface ImageData {
   fileName: string;
@@ -739,9 +813,27 @@ interface SortOptions {
   endDate: string;
   startTime: string;
   endTime: string;
+  weeks: string[]; // Array of selected days of the week
 }
 
 const SORT_OPTIONS_KEY = "imageSortOptions";
+const DAYS_OF_WEEK = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+const DEFAULT_OPTIONS: SortOptions = {
+  startDate: "",
+  endDate: "",
+  startTime: "",
+  endTime: "",
+  weeks: [], // Initialize with empty array
+};
 
 function SorterModal({
   onClose,
@@ -750,33 +842,27 @@ function SorterModal({
   onClose: () => void;
   onApply: (options: SortOptions) => void;
 }) {
-  // Initialize with saved values
   const [options, setOptions] = useState<SortOptions>(() => {
-    if (typeof window === "undefined")
-      return {
-        startDate: "",
-        endDate: "",
-        startTime: "",
-        endTime: "",
-      };
+    if (typeof window === "undefined") return DEFAULT_OPTIONS;
 
     const saved = localStorage.getItem(SORT_OPTIONS_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Ensure weeks array exists
+        return {
+          ...DEFAULT_OPTIONS,
+          ...parsed,
+          weeks: Array.isArray(parsed.weeks) ? parsed.weeks : [],
+        };
       } catch (e) {
         console.error("Error parsing saved sort options:", e);
+        return DEFAULT_OPTIONS;
       }
     }
-    return {
-      startDate: "",
-      endDate: "",
-      startTime: "",
-      endTime: "",
-    };
+    return DEFAULT_OPTIONS;
   });
 
-  // Update localStorage whenever options change
   useEffect(() => {
     localStorage.setItem(SORT_OPTIONS_KEY, JSON.stringify(options));
   }, [options]);
@@ -789,21 +875,24 @@ function SorterModal({
     }));
   };
 
+  const handleWeekChange = (day: string) => {
+    setOptions((prev) => ({
+      ...prev,
+      weeks: prev.weeks.includes(day)
+        ? prev.weeks.filter((d) => d !== day)
+        : [...prev.weeks, day],
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onApply(options);
   };
 
   const handleClear = () => {
-    const emptyOptions = {
-      startDate: "",
-      endDate: "",
-      startTime: "",
-      endTime: "",
-    };
-    setOptions(emptyOptions);
-    localStorage.setItem(SORT_OPTIONS_KEY, JSON.stringify(emptyOptions));
-    onApply(emptyOptions);
+    setOptions(DEFAULT_OPTIONS);
+    localStorage.setItem(SORT_OPTIONS_KEY, JSON.stringify(DEFAULT_OPTIONS));
+    onApply(DEFAULT_OPTIONS);
   };
 
   return (
@@ -822,7 +911,7 @@ function SorterModal({
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-gray-700">
                 Start Date
               </label>
               <input
@@ -830,23 +919,25 @@ function SorterModal({
                 name="startDate"
                 value={options.startDate}
                 onChange={handleInputChange}
-                className="w-full border rounded p-2"
+                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">End Date</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700">
+                End Date
+              </label>
               <input
                 type="date"
                 name="endDate"
                 value={options.endDate}
                 onChange={handleInputChange}
-                className="w-full border rounded p-2"
+                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-gray-700">
                 Start Time
               </label>
               <input
@@ -854,19 +945,43 @@ function SorterModal({
                 name="startTime"
                 value={options.startTime}
                 onChange={handleInputChange}
-                className="w-full border rounded p-2"
+                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">End Time</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700">
+                End Time
+              </label>
               <input
                 type="time"
                 name="endTime"
                 value={options.endTime}
                 onChange={handleInputChange}
-                className="w-full border rounded p-2"
+                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                Days of Week
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {DAYS_OF_WEEK.map((day) => (
+                  <label
+                    key={day}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={options.weeks?.includes(day) ?? false}
+                      onChange={() => handleWeekChange(day)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{day}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -874,7 +989,7 @@ function SorterModal({
             <button
               type="button"
               onClick={handleClear}
-              className="px-4 py-2 text-red-600 hover:text-red-800"
+              className="px-4 py-2 text-red-600 hover:text-red-800 font-medium"
             >
               Clear All
             </button>
@@ -888,7 +1003,7 @@ function SorterModal({
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-medium"
               >
                 Apply
               </button>
@@ -908,18 +1023,15 @@ export default function ResultsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Load initial images with saved sort options
   useEffect(() => {
     const loadImagesWithSavedSort = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // First get the saved sort options
         const savedOptions = localStorage.getItem(SORT_OPTIONS_KEY);
         const sortOptions = savedOptions ? JSON.parse(savedOptions) : null;
 
-        // If there are saved options with values, apply them
         if (
           sortOptions &&
           Object.values(sortOptions).some((value) => value !== "")
@@ -936,7 +1048,6 @@ export default function ResultsPage() {
             setSelectedIndex(0);
           }
         } else {
-          // Otherwise load all images
           const response = await fetch("/api/images");
           const data = await response.json();
           setImages(data);
@@ -974,7 +1085,6 @@ export default function ResultsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  // Rest of your existing ResultsPage component code...
   return (
     <div className="flex h-screen">
       {/* Left side - Image list */}
@@ -1014,12 +1124,18 @@ export default function ResultsPage() {
               }}
               className={`p-2 cursor-pointer rounded ${
                 selectedImage?.assetPath === image.assetPath
-                  ? "bg-blue-100"
-                  : "hover:bg-gray-100"
+                  ? "bg-blue-600 text-white" // Changed from bg-blue-100 to bg-blue-600 and added text-white
+                  : "hover:bg-blue-400"
               }`}
             >
               <div className="break-words">{image.fileName}</div>
-              <div className="text-sm text-gray-500">
+              <div
+                className={`text-sm ${
+                  selectedImage?.assetPath === image.assetPath
+                    ? "text-blue-100"
+                    : "text-gray-500"
+                }`}
+              >
                 {format(
                   new Date(
                     image.yyyy,
@@ -1109,8 +1225,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Create Next App",
-  description: "Generated by create next app",
+  title: "Custom Sorting Image Viewer",
+  description: "Custom Sorting Image Viewer",
 };
 
 export default function RootLayout({
@@ -1132,16 +1248,17 @@ export default function RootLayout({
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer//app/api/sort/route.ts
 
-// app/api/sort/route.ts
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { getDay } from 'date-fns';
 
 interface SortOptions {
   startDate: string;
   endDate: string;
   startTime: string;
   endTime: string;
+  weeks?: string[];
 }
 
 interface ImageData {
@@ -1156,78 +1273,88 @@ interface ImageData {
   assetPath: string;
 }
 
+// Helper function to convert day name to number (0-6, where 0 is Sunday)
+function getDayNumber(dayName: string): number {
+  const days = {
+    'Sunday': 0,
+    'Monday': 1,
+    'Tuesday': 2,
+    'Wednesday': 3,
+    'Thursday': 4,
+    'Friday': 5,
+    'Saturday': 6
+  };
+  return days[dayName as keyof typeof days] ?? -1;
+}
+
 export async function POST(request: Request) {
   try {
-    // Add proper headers for JSON response
-    const headers = {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-store'
-    };
-
     const options: SortOptions = await request.json();
+    console.log('Received sort options:', options);
+
     const dataPath = path.join(process.cwd(), 'public', 'data.json');
     const data: ImageData[] = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+    console.log('Total images before filtering:', data.length);
 
     // Return all images if no filters are applied
-    if (!options.startDate && !options.endDate && !options.startTime && !options.endTime) {
-      return new NextResponse(JSON.stringify(data), { headers });
+    if (!options.startDate && !options.endDate && !options.startTime && !options.endTime && (!options.weeks || options.weeks.length === 0)) {
+      console.log('No filters applied, returning all data');
+      return NextResponse.json(data);
     }
 
-    const filteredData = data.filter((item: ImageData) => {
-      // Create date object with all components
-      const itemDate = new Date(
-        item.yyyy,
-        item.mm - 1,
-        item.dd,
-        item.hh,
-        item.minute,
-        item.ss
-      );
+    let filteredData = [...data];
 
-      // Date filtering
-      if (options.startDate) {
-        const startDate = new Date(options.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        const itemDateOnly = new Date(item.yyyy, item.mm - 1, item.dd, 0, 0, 0);
-        if (itemDateOnly < startDate) return false;
-      }
-
-      if (options.endDate) {
-        const endDate = new Date(options.endDate);
-        endDate.setHours(23, 59, 59, 999);
-        const itemDateOnly = new Date(item.yyyy, item.mm - 1, item.dd, 23, 59, 59);
-        if (itemDateOnly > endDate) return false;
-      }
-
-      // Time filtering
-      if (options.startTime || options.endTime) {
-        const itemMinutes = item.hh * 60 + item.minute;
-
-        if (options.startTime) {
-          const [startHour, startMin] = options.startTime.split(':').map(Number);
-          const startMinutes = startHour * 60 + startMin;
-          if (itemMinutes < startMinutes) return false;
+    // Date filtering
+    if (options.startDate || options.endDate) {
+      filteredData = filteredData.filter(item => {
+        const itemDateString = `${item.yyyy}-${String(item.mm).padStart(2, '0')}-${String(item.dd).padStart(2, '0')}`;
+        
+        if (options.startDate && itemDateString < options.startDate) {
+          return false;
         }
-
-        if (options.endTime) {
-          const [endHour, endMin] = options.endTime.split(':').map(Number);
-          const endMinutes = endHour * 60 + endMin;
-          if (itemMinutes > endMinutes) return false;
+        
+        if (options.endDate && itemDateString > options.endDate) {
+          return false;
         }
-      }
+        
+        return true;
+      });
+    }
 
-      return true;
-    });
+    // Time filtering
+    if (options.startTime || options.endTime) {
+      filteredData = filteredData.filter(item => {
+        const itemTimeString = `${String(item.hh).padStart(2, '0')}:${String(item.minute).padStart(2, '0')}`;
+        
+        if (options.startTime && itemTimeString < options.startTime) {
+          return false;
+        }
+        
+        if (options.endTime && itemTimeString > options.endTime) {
+          return false;
+        }
+        
+        return true;
+      });
+    }
 
-    return new NextResponse(JSON.stringify(filteredData), { headers });
+    // Week day filtering
+    if (options.weeks && Array.isArray(options.weeks) && options.weeks.length > 0) {
+      filteredData = filteredData.filter(item => {
+        const date = new Date(item.yyyy, item.mm - 1, item.dd);
+        const dayNumber = getDay(date);
+        return options.weeks?.some(dayName => getDayNumber(dayName) === dayNumber) ?? false;
+      });
+    }
+
+    console.log('Final filtered data length:', filteredData.length);
+    return NextResponse.json(filteredData);
+
   } catch (error) {
     console.error('Sort API Error:', error);
-    return new NextResponse(
-      JSON.stringify({ error: 'Internal Server Error' }), 
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
     );
   }
 }
@@ -1405,17 +1532,33 @@ interface ImageData {
   };
 }
 
+interface ProcessingSummary {
+  processedFiles: string[];
+  unprocessedFiles: string[];
+}
+
 function extractDateTimeFromFileName(fileName: string): ImageData | null {
   console.log('Processing file:', fileName);
   
-  // Format: Screenshot_20241204_170033.jpg (YYYYMMDD_HHMMSS)
-  const match = fileName.match(/Screenshot_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+  // Format 1: Screenshot_20241204_170033.jpg (YYYYMMDD_HHMMSS)
+  let match = fileName.match(/Screenshot_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+  
+  // Format 2: Screenshot_2024-12-19_205547_com.ubercab.driver.jpg (YYYY-MM-DD_HHMMSS_description)
+  if (!match) {
+    match = fileName.match(/Screenshot_(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})(\d{2})_(.+)\.jpg/);
+  }
+
+  // Format 3: 20240921_135601295.jpeg (YYYYMMDD_HHMMSSXXX)
+  if (!match) {
+    match = fileName.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\d{3}\.(jpeg|jpg)$/);
+  }
+
   if (match) {
     console.log('Matched filename pattern, groups:', match.slice(1));
-    const [_, yyyy, mm, dd, hh, minute, ss] = match;
+    const [_, yyyy, mm, dd, hh, minute, ss, description] = match;
     
     // Convert all strings to numbers with parseInt
-    const data = {
+    const data: ImageData = {
       fileName,
       fileFormat: path.extname(fileName).slice(1),
       yyyy: parseInt(yyyy, 10),
@@ -1425,10 +1568,10 @@ function extractDateTimeFromFileName(fileName: string): ImageData | null {
       minute: parseInt(minute, 10),
       ss: parseInt(ss, 10),
       assetPath: '',
-      fileDescription: '',
+      fileDescription: description ? description.replace(/_/g, ' ') : '',
       meta: {
-        value: '',
-        type: '',
+        value: 'timestamp',
+        type: 'image'
       }
     };
     
@@ -1440,9 +1583,13 @@ function extractDateTimeFromFileName(fileName: string): ImageData | null {
   return null;
 }
 
-function processImagesDirectory(dirPath: string, baseDir: string): ImageData[] {
+function processImagesDirectory(dirPath: string, baseDir: string): { items: ImageData[], summary: ProcessingSummary } {
   console.log('Processing directory:', dirPath);
   const items: ImageData[] = [];
+  const summary: ProcessingSummary = {
+    processedFiles: [],
+    unprocessedFiles: []
+  };
   
   try {
     const files: string[] = fs.readdirSync(dirPath);
@@ -1454,7 +1601,10 @@ function processImagesDirectory(dirPath: string, baseDir: string): ImageData[] {
 
       if (stat.isDirectory()) {
         console.log('Found subdirectory:', file);
-        items.push(...processImagesDirectory(fullPath, baseDir));
+        const subDirResult = processImagesDirectory(fullPath, baseDir);
+        items.push(...subDirResult.items);
+        summary.processedFiles.push(...subDirResult.summary.processedFiles);
+        summary.unprocessedFiles.push(...subDirResult.summary.unprocessedFiles);
       } else {
         const fileExt: string = path.extname(file).toLowerCase();
         if (['.jpg', '.jpeg'].includes(fileExt)) {
@@ -1466,15 +1616,42 @@ function processImagesDirectory(dirPath: string, baseDir: string): ImageData[] {
             imageData.assetPath = '/' + relativePath.replace(/\\/g, '/');
             console.log('Added image data:', imageData);
             items.push(imageData);
+            summary.processedFiles.push(file);
+          } else {
+            summary.unprocessedFiles.push(file);
           }
+        } else {
+          // Non-jpg files are considered unprocessed
+          summary.unprocessedFiles.push(file);
         }
       }
     });
+
+    // Sort items by date and time, newest first
+    items.sort((a, b) => {
+      const dateA = new Date(a.yyyy, a.mm - 1, a.dd, a.hh, a.minute, a.ss);
+      const dateB = new Date(b.yyyy, b.mm - 1, b.dd, b.hh, b.minute, b.ss);
+      return dateB.getTime() - dateA.getTime();
+    });
+
   } catch (error) {
     console.error('Error processing directory:', dirPath, error);
   }
 
-  return items;
+  return { items, summary };
+}
+
+function printSummary(summary: ProcessingSummary, totalFiles: number): void {
+  console.log('\n=== Processing Summary ===');
+  console.log(`Total files found: ${totalFiles}`);
+  console.log(`Successfully processed: ${summary.processedFiles.length} files`);
+  console.log(`Failed to process: ${summary.unprocessedFiles.length} files\n`);
+
+  if (summary.unprocessedFiles.length > 0) {
+    console.log('Failed to process the following files:');
+    summary.unprocessedFiles.forEach(file => console.log(`  • ${file}`));
+  }
+  console.log('\n=========================');
 }
 
 function main() {
@@ -1490,12 +1667,16 @@ function main() {
     fs.mkdirSync(imagesDir, { recursive: true });
   }
 
-  const imageData: ImageData[] = processImagesDirectory(imagesDir, publicDir);
+  const { items: imageData, summary } = processImagesDirectory(imagesDir, publicDir);
   console.log('Processed image data:', imageData);
 
   const outputPath = path.join(publicDir, 'data.json');
   fs.writeFileSync(outputPath, JSON.stringify(imageData, null, 2));
   console.log(`Written ${imageData.length} items to:`, outputPath);
+
+  // Print processing summary
+  const totalFiles = summary.processedFiles.length + summary.unprocessedFiles.length;
+  printSummary(summary, totalFiles);
 }
 
 main();

@@ -763,6 +763,29 @@ export default function Home() {
   }
 }
 
+// /Users/adamchenwei/www/custom-sorting-image-viewer/tailwind.config.ts
+
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+      },
+    },
+  },
+  plugins: [],
+};
+export default config;
+
+
 # Content from main directory: /Users/adamchenwei/www/custom-sorting-image-viewer/
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer//app/results/page.tsx
@@ -1507,17 +1530,33 @@ interface ImageData {
   };
 }
 
+interface ProcessingSummary {
+  processedFiles: string[];
+  unprocessedFiles: string[];
+}
+
 function extractDateTimeFromFileName(fileName: string): ImageData | null {
   console.log('Processing file:', fileName);
   
-  // Format: Screenshot_20241204_170033.jpg (YYYYMMDD_HHMMSS)
-  const match = fileName.match(/Screenshot_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+  // Format 1: Screenshot_20241204_170033.jpg (YYYYMMDD_HHMMSS)
+  let match = fileName.match(/Screenshot_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+  
+  // Format 2: Screenshot_2024-12-19_205547_com.ubercab.driver.jpg (YYYY-MM-DD_HHMMSS_description)
+  if (!match) {
+    match = fileName.match(/Screenshot_(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})(\d{2})_(.+)\.jpg/);
+  }
+
+  // Format 3: 20240921_135601295.jpeg (YYYYMMDD_HHMMSSXXX)
+  if (!match) {
+    match = fileName.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\d{3}\.(jpeg|jpg)$/);
+  }
+
   if (match) {
     console.log('Matched filename pattern, groups:', match.slice(1));
-    const [_, yyyy, mm, dd, hh, minute, ss] = match;
+    const [_, yyyy, mm, dd, hh, minute, ss, description] = match;
     
     // Convert all strings to numbers with parseInt
-    const data = {
+    const data: ImageData = {
       fileName,
       fileFormat: path.extname(fileName).slice(1),
       yyyy: parseInt(yyyy, 10),
@@ -1527,10 +1566,10 @@ function extractDateTimeFromFileName(fileName: string): ImageData | null {
       minute: parseInt(minute, 10),
       ss: parseInt(ss, 10),
       assetPath: '',
-      fileDescription: '',
+      fileDescription: description ? description.replace(/_/g, ' ') : '',
       meta: {
-        value: '',
-        type: '',
+        value: 'timestamp',
+        type: 'image'
       }
     };
     
@@ -1542,9 +1581,13 @@ function extractDateTimeFromFileName(fileName: string): ImageData | null {
   return null;
 }
 
-function processImagesDirectory(dirPath: string, baseDir: string): ImageData[] {
+function processImagesDirectory(dirPath: string, baseDir: string): { items: ImageData[], summary: ProcessingSummary } {
   console.log('Processing directory:', dirPath);
   const items: ImageData[] = [];
+  const summary: ProcessingSummary = {
+    processedFiles: [],
+    unprocessedFiles: []
+  };
   
   try {
     const files: string[] = fs.readdirSync(dirPath);
@@ -1556,7 +1599,10 @@ function processImagesDirectory(dirPath: string, baseDir: string): ImageData[] {
 
       if (stat.isDirectory()) {
         console.log('Found subdirectory:', file);
-        items.push(...processImagesDirectory(fullPath, baseDir));
+        const subDirResult = processImagesDirectory(fullPath, baseDir);
+        items.push(...subDirResult.items);
+        summary.processedFiles.push(...subDirResult.summary.processedFiles);
+        summary.unprocessedFiles.push(...subDirResult.summary.unprocessedFiles);
       } else {
         const fileExt: string = path.extname(file).toLowerCase();
         if (['.jpg', '.jpeg'].includes(fileExt)) {
@@ -1568,15 +1614,42 @@ function processImagesDirectory(dirPath: string, baseDir: string): ImageData[] {
             imageData.assetPath = '/' + relativePath.replace(/\\/g, '/');
             console.log('Added image data:', imageData);
             items.push(imageData);
+            summary.processedFiles.push(file);
+          } else {
+            summary.unprocessedFiles.push(file);
           }
+        } else {
+          // Non-jpg files are considered unprocessed
+          summary.unprocessedFiles.push(file);
         }
       }
     });
+
+    // Sort items by date and time, newest first
+    items.sort((a, b) => {
+      const dateA = new Date(a.yyyy, a.mm - 1, a.dd, a.hh, a.minute, a.ss);
+      const dateB = new Date(b.yyyy, b.mm - 1, b.dd, b.hh, b.minute, b.ss);
+      return dateB.getTime() - dateA.getTime();
+    });
+
   } catch (error) {
     console.error('Error processing directory:', dirPath, error);
   }
 
-  return items;
+  return { items, summary };
+}
+
+function printSummary(summary: ProcessingSummary, totalFiles: number): void {
+  console.log('\n=== Processing Summary ===');
+  console.log(`Total files found: ${totalFiles}`);
+  console.log(`Successfully processed: ${summary.processedFiles.length} files`);
+  console.log(`Failed to process: ${summary.unprocessedFiles.length} files\n`);
+
+  if (summary.unprocessedFiles.length > 0) {
+    console.log('Failed to process the following files:');
+    summary.unprocessedFiles.forEach(file => console.log(`  • ${file}`));
+  }
+  console.log('\n=========================');
 }
 
 function main() {
@@ -1592,12 +1665,16 @@ function main() {
     fs.mkdirSync(imagesDir, { recursive: true });
   }
 
-  const imageData: ImageData[] = processImagesDirectory(imagesDir, publicDir);
+  const { items: imageData, summary } = processImagesDirectory(imagesDir, publicDir);
   console.log('Processed image data:', imageData);
 
   const outputPath = path.join(publicDir, 'data.json');
   fs.writeFileSync(outputPath, JSON.stringify(imageData, null, 2));
   console.log(`Written ${imageData.length} items to:`, outputPath);
+
+  // Print processing summary
+  const totalFiles = summary.processedFiles.length + summary.unprocessedFiles.length;
+  printSummary(summary, totalFiles);
 }
 
 main();

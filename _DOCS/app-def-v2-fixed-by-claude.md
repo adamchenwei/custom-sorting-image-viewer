@@ -76,3 +76,9 @@ When filters are applied, updates the image list immediately
 
 
 The app uses TypeScript, Next.js's Image component for optimized image loading, and Tailwind CSS for styling. It includes loading states and error handling for API calls.
+
+
+
+
+
+ sort options prop of "weeks" which can be any names of the week start from monday to sunday, which in  correlation to the dates of each file.
