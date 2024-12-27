@@ -100,25 +100,31 @@ export default function ResultsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const handleImageSelect = (image: ImageData, event: React.MouseEvent) => {
-    // If shift key is pressed, maintain preview selection
-    if (!event.shiftKey) {
-      setSelectedImage(image);
-      setSelectedIndex(
-        images.findIndex((img) => img.assetPath === image.assetPath)
-      );
+  const handleImageSelect = (
+    image: ImageData,
+    event: React.MouseEvent,
+    isCheckboxClick: boolean
+  ) => {
+    // If clicking the checkbox area, only toggle selection
+    if (isCheckboxClick) {
+      setSelectedImages((prev) => {
+        const newSelection = new Set(prev);
+        if (newSelection.has(image.assetPath)) {
+          newSelection.delete(image.assetPath);
+        } else {
+          newSelection.add(image.assetPath);
+        }
+        return newSelection;
+      });
+      return;
     }
 
-    // Toggle selection for multi-select
-    setSelectedImages((prev) => {
-      const newSelection = new Set(prev);
-      if (newSelection.has(image.assetPath)) {
-        newSelection.delete(image.assetPath);
-      } else {
-        newSelection.add(image.assetPath);
-      }
-      return newSelection;
-    });
+    // For clicks outside checkbox area, update preview and clear multi-select
+    setSelectedImage(image);
+    setSelectedIndex(
+      images.findIndex((img) => img.assetPath === image.assetPath)
+    );
+    setSelectedImages(new Set());
   };
 
   const handleMove = async (targetPath: string) => {
@@ -345,10 +351,16 @@ export default function ResultsPage() {
                   ? "bg-blue-50 text-black"
                   : ""
               }`}
-              onClick={(e) => handleImageSelect(image, e)}
+              onClick={(e) => handleImageSelect(image, e, false)}
             >
               {/* Checkbox */}
-              <div className="flex-shrink-0 mr-2">
+              <div
+                className="flex-shrink-0 mr-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleImageSelect(image, e, true);
+                }}
+              >
                 {selectedImages.has(image.assetPath) ? (
                   <CheckSquare className="text-blue-500" size={20} />
                 ) : (
