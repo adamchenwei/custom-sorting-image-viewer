@@ -338,9 +338,13 @@ export default function ResultsPage() {
               key={image.assetPath}
               className={`p-2 cursor-pointer rounded flex items-start group ${
                 selectedImage?.assetPath === image.assetPath
-                  ? "bg-blue-100"
-                  : "hover:bg-gray-100"
-              } ${selectedImages.has(image.assetPath) ? "bg-blue-50" : ""}`}
+                  ? "bg-blue-100 text-gray-500"
+                  : "hover:bg-gray-100 text-black"
+              } ${
+                selectedImages.has(image.assetPath)
+                  ? "bg-blue-50 text-black"
+                  : ""
+              }`}
               onClick={(e) => handleImageSelect(image, e)}
             >
               {/* Checkbox */}
