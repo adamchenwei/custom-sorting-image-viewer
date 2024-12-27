@@ -12,10 +12,44 @@ type HolidayConfigs = {
   [key: string]: HolidayConfig;
 };
 
+// Helper function for timezone-safe date creation
+const createDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+// Helper function to get the nth occurrence of a weekday in a month
+const getNthWeekdayOfMonth = (year: number, month: number, weekday: number, n: number): Date => {
+  const date = new Date(year, month, 1);
+  
+  // Find the first occurrence of weekday
+  while (date.getDay() !== weekday) {
+    date.setDate(date.getDate() + 1);
+  }
+  
+  // Add weeks until we reach the nth occurrence
+  date.setDate(date.getDate() + (n - 1) * 7);
+  
+  return date;
+};
+
+// Helper function to get the last occurrence of a weekday in a month
+const getLastWeekdayOfMonth = (year: number, month: number, weekday: number): Date => {
+  const date = new Date(year, month + 1, 0); // Last day of the month
+  
+  while (date.getDay() !== weekday) {
+    date.setDate(date.getDate() - 1);
+  }
+  
+  return date;
+};
+
 const HOLIDAY_CONFIGS: HolidayConfigs = {
   'new-years-day': {
     name: "New Year's Day",
-    check: (date: Date): boolean => date.getMonth() === 0 && date.getDate() === 1
+    check: (date: Date): boolean => {
+      return date.getMonth() === 0 && date.getDate() === 1;
+    }
   },
   'martin-luther-king-jr-day': {
     name: "Martin Luther King Jr. Day",
@@ -40,11 +74,15 @@ const HOLIDAY_CONFIGS: HolidayConfigs = {
   },
   'juneteenth': {
     name: "Juneteenth",
-    check: (date: Date): boolean => date.getMonth() === 5 && date.getDate() === 19
+    check: (date: Date): boolean => {
+      return date.getMonth() === 5 && date.getDate() === 19;
+    }
   },
   'independence-day': {
     name: "Independence Day",
-    check: (date: Date): boolean => date.getMonth() === 6 && date.getDate() === 4
+    check: (date: Date): boolean => {
+      return date.getMonth() === 6 && date.getDate() === 4;
+    }
   },
   'labor-day': {
     name: "Labor Day",
@@ -62,7 +100,9 @@ const HOLIDAY_CONFIGS: HolidayConfigs = {
   },
   'veterans-day': {
     name: "Veterans Day",
-    check: (date: Date): boolean => date.getMonth() === 10 && date.getDate() === 11
+    check: (date: Date): boolean => {
+      return date.getMonth() === 10 && date.getDate() === 11;
+    }
   },
   'thanksgiving-day': {
     name: "Thanksgiving Day",
@@ -73,32 +113,10 @@ const HOLIDAY_CONFIGS: HolidayConfigs = {
   },
   'christmas-day': {
     name: "Christmas Day",
-    check: (date: Date): boolean => date.getMonth() === 11 && date.getDate() === 25
+    check: (date: Date): boolean => {
+      return date.getMonth() === 11 && date.getDate() === 25;
+    }
   }
-};
-
-const getNthWeekdayOfMonth = (year: number, month: number, weekday: number, n: number): Date => {
-  const date = new Date(year, month, 1);
-  
-  // Find the first occurrence of weekday
-  while (date.getDay() !== weekday) {
-    date.setDate(date.getDate() + 1);
-  }
-  
-  // Add weeks until we reach the nth occurrence
-  date.setDate(date.getDate() + (n - 1) * 7);
-  
-  return date;
-};
-
-const getLastWeekdayOfMonth = (year: number, month: number, weekday: number): Date => {
-  const date = new Date(year, month + 1, 0); // Last day of the month
-  
-  while (date.getDay() !== weekday) {
-    date.setDate(date.getDate() - 1);
-  }
-  
-  return date;
 };
 
 /**
@@ -113,7 +131,7 @@ export const isUSHoliday = (dateStr: string): HolidayResult | null => {
     throw new Error('Date must be in yyyy-mm-dd format');
   }
 
-  const date = new Date(dateStr);
+  const date = createDate(dateStr);
   
   // Validate if date is valid
   if (isNaN(date.getTime())) {
