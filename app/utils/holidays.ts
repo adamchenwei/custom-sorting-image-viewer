@@ -12,6 +12,30 @@ type HolidayConfigs = {
   [key: string]: HolidayConfig;
 };
 
+// Helper function for timezone-safe date validation
+const validateDate = (dateStr: string): { isValid: boolean; errorMessage?: string } => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  
+  // Validate month (1-12)
+  if (month < 1 || month > 12) {
+    return { 
+      isValid: false, 
+      errorMessage: `Invalid month: ${month}. Month must be between 1 and 12`
+    };
+  }
+  
+  // Validate day based on month
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (day < 1 || day > daysInMonth) {
+    return { 
+      isValid: false, 
+      errorMessage: `Invalid day: ${day}. Day must be between 1 and ${daysInMonth} for month ${month}`
+    };
+  }
+  
+  return { isValid: true };
+};
+
 // Helper function for timezone-safe date creation
 const createDate = (dateStr: string): Date => {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -122,21 +146,27 @@ const HOLIDAY_CONFIGS: HolidayConfigs = {
 /**
  * Check if a given date string is a US holiday
  * @param dateStr - Date string in 'yyyy-mm-dd' format
- * @returns Holiday information or null if not a holiday
- * @throws Error if date format is invalid
+ * @returns Holiday information or error information
  */
-export const isUSHoliday = (dateStr: string): HolidayResult | null => {
+export const isUSHoliday = (dateStr: string): HolidayResult => {
   // Validate date string format
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    throw new Error('Date must be in yyyy-mm-dd format');
+    return {
+      id: 'error',
+      name: 'Date must be in yyyy-mm-dd format'
+    };
+  }
+
+  // Validate date components
+  const validation = validateDate(dateStr);
+  if (!validation.isValid) {
+    return {
+      id: 'error',
+      name: validation.errorMessage!
+    };
   }
 
   const date = createDate(dateStr);
-  
-  // Validate if date is valid
-  if (isNaN(date.getTime())) {
-    throw new Error('Invalid date');
-  }
 
   // Check against all holiday configurations
   for (const [id, config] of Object.entries(HOLIDAY_CONFIGS)) {
@@ -148,5 +178,8 @@ export const isUSHoliday = (dateStr: string): HolidayResult | null => {
     }
   }
 
-  return null;
+  return {
+    id: 'not-holiday',
+    name: `${dateStr} is not a holiday`
+  };
 };

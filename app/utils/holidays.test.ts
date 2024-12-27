@@ -3,16 +3,34 @@ import { isUSHoliday } from "./holidays";
 // holidays.test.ts
 describe('isUSHoliday', () => {
   describe('input validation', () => {
-    it('should throw error for invalid date format', () => {
-      expect(() => isUSHoliday('2024/12/25')).toThrow('Date must be in yyyy-mm-dd format');
-      expect(() => isUSHoliday('12-25-2024')).toThrow('Date must be in yyyy-mm-dd format');
-      expect(() => isUSHoliday('invalid')).toThrow('Date must be in yyyy-mm-dd format');
+    it('should return error for invalid date format', () => {
+      expect(isUSHoliday('2024/12/25')).toEqual({
+        id: 'error',
+        name: 'Date must be in yyyy-mm-dd format'
+      });
+      expect(isUSHoliday('12-25-2024')).toEqual({
+        id: 'error',
+        name: 'Date must be in yyyy-mm-dd format'
+      });
+      expect(isUSHoliday('invalid')).toEqual({
+        id: 'error',
+        name: 'Date must be in yyyy-mm-dd format'
+      });
     });
 
-    it('should throw error for invalid dates', () => {
-      expect(() => isUSHoliday('2024-13-01')).toThrow('Invalid date');
-      expect(() => isUSHoliday('2024-00-01')).toThrow('Invalid date');
-      expect(() => isUSHoliday('2024-12-32')).toThrow('Invalid date');
+    it('should return error for invalid dates', () => {
+      expect(isUSHoliday('2024-13-01')).toEqual({
+        id: 'error',
+        name: 'Invalid month: 13. Month must be between 1 and 12'
+      });
+      expect(isUSHoliday('2024-00-01')).toEqual({
+        id: 'error',
+        name: 'Invalid month: 0. Month must be between 1 and 12'
+      });
+      expect(isUSHoliday('2024-12-32')).toEqual({
+        id: 'error',
+        name: 'Invalid day: 32. Day must be between 1 and 31 for month 12'
+      });
     });
   });
 
@@ -102,15 +120,30 @@ describe('isUSHoliday', () => {
   });
 
   describe('non-holidays', () => {
-    it('should return null for non-holiday dates', () => {
-      expect(isUSHoliday('2024-03-15')).toBeNull();
-      expect(isUSHoliday('2024-08-01')).toBeNull();
-      expect(isUSHoliday('2024-12-26')).toBeNull();
+    it('should return not-holiday for non-holiday dates', () => {
+      expect(isUSHoliday('2024-03-15')).toEqual({
+        id: 'not-holiday',
+        name: '2024-03-15 is not a holiday'
+      });
+      expect(isUSHoliday('2024-08-01')).toEqual({
+        id: 'not-holiday',
+        name: '2024-08-01 is not a holiday'
+      });
+      expect(isUSHoliday('2024-12-26')).toEqual({
+        id: 'not-holiday',
+        name: '2024-12-26 is not a holiday'
+      });
     });
 
-    it('should return null for weekend dates that are not holidays', () => {
-      expect(isUSHoliday('2024-03-16')).toBeNull(); // Saturday
-      expect(isUSHoliday('2024-03-17')).toBeNull(); // Sunday
+    it('should return not-holiday for weekend dates that are not holidays', () => {
+      expect(isUSHoliday('2024-03-16')).toEqual({
+        id: 'not-holiday',
+        name: '2024-03-16 is not a holiday'
+      }); // Saturday
+      expect(isUSHoliday('2024-03-17')).toEqual({
+        id: 'not-holiday',
+        name: '2024-03-17 is not a holiday'
+      }); // Sunday
     });
   });
 
@@ -123,7 +156,10 @@ describe('isUSHoliday', () => {
     });
 
     it('should handle year transitions correctly', () => {
-      expect(isUSHoliday('2024-12-31')).toBeNull();
+      expect(isUSHoliday('2024-12-31')).toEqual({
+        id: 'not-holiday',
+        name: '2024-12-31 is not a holiday'
+      });
       expect(isUSHoliday('2025-01-01')).toEqual({
         id: 'new-years-day',
         name: "New Year's Day"
