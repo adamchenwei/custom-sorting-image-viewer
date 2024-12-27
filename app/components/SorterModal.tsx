@@ -1,4 +1,3 @@
-// app/components/SorterModal.tsx
 import { useState, useEffect } from "react";
 import { format, addMinutes } from "date-fns";
 
@@ -16,7 +15,6 @@ interface SorterModalProps {
 }
 
 const SORT_OPTIONS_KEY = "imageSortOptions";
-
 const DAYS_OF_WEEK = [
   "Monday",
   "Tuesday",
@@ -38,7 +36,7 @@ function getDefaultOptions(): SortOptions {
     endDate: format(now, "yyyy-MM-dd"),
     startTime: format(now, "HH:mm"),
     endTime: format(later, "HH:mm"),
-    weeks: [DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1]], // Convert Sunday=0 to array index
+    weeks: [DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1]],
   };
 }
 
@@ -52,7 +50,6 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure weeks array exists
         return {
           ...DEFAULT_OPTIONS,
           ...parsed,
@@ -84,6 +81,17 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
       weeks: prev.weeks.includes(day)
         ? prev.weeks.filter((d) => d !== day)
         : [...prev.weeks, day],
+    }));
+  };
+
+  const handleNext15Minutes = () => {
+    const now = new Date();
+    const later = addMinutes(now, 15);
+
+    setOptions((prev) => ({
+      ...prev,
+      startTime: format(now, "HH:mm"),
+      endTime: format(later, "HH:mm"),
     }));
   };
 
@@ -140,9 +148,18 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
-                Start Time
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Start Time
+                </label>
+                <button
+                  type="button"
+                  onClick={handleNext15Minutes}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Next 15 Minutes
+                </button>
+              </div>
               <input
                 type="time"
                 name="startTime"
