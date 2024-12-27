@@ -6,6 +6,7 @@ import { ArrowRight, X, CheckSquare, Square } from "lucide-react";
 import { moveImages, deleteImages } from "../services/imageService";
 import { MoveModal } from "../components/MoveModal";
 import { SorterModal } from "../components/SorterModal";
+import { isUSHoliday } from "../utils/holidays";
 
 interface ImageData {
   fileName: string;
@@ -396,6 +397,21 @@ export default function ResultsPage() {
                     "PPpp"
                   )}
                 </div>
+                {(() => {
+                  const dateStr = `${image.yyyy}-${String(image.mm).padStart(
+                    2,
+                    "0"
+                  )}-${String(image.dd).padStart(2, "0")}`;
+                  const holiday = isUSHoliday(dateStr);
+                  if (holiday.id !== "error" && holiday.id !== "not-holiday") {
+                    return (
+                      <div className="mt-1 inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-900">
+                        {holiday.id}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               {/* Action Buttons */}
