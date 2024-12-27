@@ -216,6 +216,58 @@ export default function ResultsPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${selectedImages.size} images?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const imagesToDelete = Array.from(selectedImages).map((assetPath) => {
+        const image = images.find((img) => img.assetPath === assetPath);
+        return {
+          assetPath,
+          fileName: image!.fileName,
+        };
+      });
+
+      await deleteImages(imagesToDelete);
+
+      // Update local state
+      setImages((prevImages) =>
+        prevImages.filter((img) => !selectedImages.has(img.assetPath))
+      );
+
+      // If any of the deleted images was selected, select the first remaining image
+      if (selectedImage && selectedImages.has(selectedImage.assetPath)) {
+        const remainingImages = images.filter(
+          (img) => !selectedImages.has(img.assetPath)
+        );
+        if (remainingImages.length > 0) {
+          setSelectedImage(remainingImages[0]);
+          setSelectedIndex(0);
+        } else {
+          setSelectedImage(null);
+          setSelectedIndex(-1);
+        }
+      }
+
+      // Clear selections
+      setSelectedImages(new Set());
+    } catch (err) {
+      console.error("Error deleting images:", err);
+      setError("Failed to delete images");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleApplySort = async (options: SortOptions) => {
     try {
       setLoading(true);
@@ -243,12 +295,20 @@ export default function ResultsPage() {
             Sort
           </button>
           {selectedImages.size > 0 && (
-            <button
-              onClick={() => setShowMoveModal(true)}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              Move Selected ({selectedImages.size})
-            </button>
+            <>
+              <button
+                onClick={() => setShowMoveModal(true)}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Move Selected ({selectedImages.size})
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Delete Selected ({selectedImages.size})
+              </button>
+            </>
           )}
         </div>
 

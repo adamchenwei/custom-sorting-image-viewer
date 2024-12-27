@@ -49,29 +49,31 @@ export async function moveImages(
   }
 }
 
-export async function deleteImage(assetPath: string, fileName: string): Promise<boolean> {
+export async function deleteImages(
+  images: { assetPath: string; fileName: string }[]
+): Promise<boolean> {
   try {
-    console.log('Sending delete request for:', { assetPath, fileName });
+    console.log('Sending bulk delete request for:', images);
     
     const response = await fetch('/api/images/delete', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ assetPath, fileName }),
+      body: JSON.stringify({ images }),
     });
 
     const result = await response.json();
     
     if (!response.ok) {
-      console.error('Delete request failed:', result);
-      throw new Error(result.error || 'Failed to delete image');
+      console.error('Bulk delete request failed:', result);
+      throw new Error(result.error || 'Failed to delete images');
     }
 
-    console.log('Delete response:', result);
+    console.log('Bulk delete response:', result);
     return true;
   } catch (error) {
-    console.error('Error in deleteImage service:', error);
+    console.error('Error in deleteImages service:', error);
     throw error;
   }
 }
