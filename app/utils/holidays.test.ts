@@ -129,9 +129,9 @@ describe('isUSHoliday', () => {
         id: 'not-holiday',
         name: '2024-08-01 is not a holiday'
       });
-      expect(isUSHoliday('2024-12-26')).toEqual({
+      expect(isUSHoliday('2024-12-27')).toEqual({
         id: 'not-holiday',
-        name: '2024-12-26 is not a holiday'
+        name: '2024-12-27 is not a holiday'
       });
     });
 
@@ -163,6 +163,62 @@ describe('isUSHoliday', () => {
       expect(isUSHoliday('2025-01-01')).toEqual({
         id: 'new-years-day',
         name: "New Year's Day"
+      });
+    });
+  });
+  describe('custom holidays', () => {
+    describe('week before Christmas', () => {
+      it('should identify dates in the week before Christmas', () => {
+        expect(isUSHoliday('2024-12-18')).toEqual({
+          id: 'week-before-christmas',
+          name: 'The Week Before Christmas'
+        });
+        expect(isUSHoliday('2024-12-19')).toEqual({
+          id: 'week-before-christmas',
+          name: 'The Week Before Christmas'
+        });
+        expect(isUSHoliday('2024-12-24')).toEqual({
+          id: 'week-before-christmas',
+          name: 'The Week Before Christmas'
+        });
+      });
+
+      it('should not identify dates outside the week before Christmas', () => {
+        expect(isUSHoliday('2024-12-17')).toEqual({
+          id: 'not-holiday',
+          name: '2024-12-17 is not a holiday'
+        });
+        expect(isUSHoliday('2024-12-25')).toEqual({
+          id: 'christmas-day',
+          name: 'Christmas Day'
+        });
+      });
+    });
+
+    describe('day after Christmas', () => {
+      it('should identify December 26th as the day after Christmas', () => {
+        expect(isUSHoliday('2024-12-26')).toEqual({
+          id: 'day-after-christmas',
+          name: 'The Day After Christmas'
+        });
+      });
+
+      it('should work across different years', () => {
+        expect(isUSHoliday('2025-12-26')).toEqual({
+          id: 'day-after-christmas',
+          name: 'The Day After Christmas'
+        });
+      });
+
+      it('should not identify other dates as the day after Christmas', () => {
+        expect(isUSHoliday('2024-12-25')).toEqual({
+          id: 'christmas-day',
+          name: 'Christmas Day'
+        });
+        expect(isUSHoliday('2024-12-27')).toEqual({
+          id: 'not-holiday',
+          name: '2024-12-27 is not a holiday'
+        });
       });
     });
   });

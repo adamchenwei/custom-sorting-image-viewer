@@ -7,15 +7,374 @@
 
 # Content from directory: /Users/adamchenwei/www/custom-sorting-image-viewer/app
 
+// /Users/adamchenwei/www/custom-sorting-image-viewer/app/utils/holidays.ts
+
+interface HolidayConfig {
+  name: string;
+  check: (date: Date) => boolean;
+}
+
+interface HolidayResult {
+  id: string;
+  name: string;
+}
+
+type HolidayConfigs = {
+  [key: string]: HolidayConfig;
+};
+
+// Helper function for timezone-safe date validation
+const validateDate = (dateStr: string): { isValid: boolean; errorMessage?: string } => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  
+  // Validate month (1-12)
+  if (month < 1 || month > 12) {
+    return { 
+      isValid: false, 
+      errorMessage: `Invalid month: ${month}. Month must be between 1 and 12`
+    };
+  }
+  
+  // Validate day based on month
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (day < 1 || day > daysInMonth) {
+    return { 
+      isValid: false, 
+      errorMessage: `Invalid day: ${day}. Day must be between 1 and ${daysInMonth} for month ${month}`
+    };
+  }
+  
+  return { isValid: true };
+};
+
+// Helper function for timezone-safe date creation
+const createDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+// Helper function to get the nth occurrence of a weekday in a month
+const getNthWeekdayOfMonth = (year: number, month: number, weekday: number, n: number): Date => {
+  const date = new Date(year, month, 1);
+  
+  // Find the first occurrence of weekday
+  while (date.getDay() !== weekday) {
+    date.setDate(date.getDate() + 1);
+  }
+  
+  // Add weeks until we reach the nth occurrence
+  date.setDate(date.getDate() + (n - 1) * 7);
+  
+  return date;
+};
+
+// Helper function to get the last occurrence of a weekday in a month
+const getLastWeekdayOfMonth = (year: number, month: number, weekday: number): Date => {
+  const date = new Date(year, month + 1, 0); // Last day of the month
+  
+  while (date.getDay() !== weekday) {
+    date.setDate(date.getDate() - 1);
+  }
+  
+  return date;
+};
+
+const HOLIDAY_CONFIGS: HolidayConfigs = {
+  'new-years-day': {
+    name: "New Year's Day",
+    check: (date: Date): boolean => {
+      return date.getMonth() === 0 && date.getDate() === 1;
+    }
+  },
+  'martin-luther-king-jr-day': {
+    name: "Martin Luther King Jr. Day",
+    check: (date: Date): boolean => {
+      const mlkDay = getNthWeekdayOfMonth(date.getFullYear(), 0, 1, 3);
+      return date.getTime() === mlkDay.getTime();
+    }
+  },
+  'presidents-day': {
+    name: "Presidents Day",
+    check: (date: Date): boolean => {
+      const presDay = getNthWeekdayOfMonth(date.getFullYear(), 1, 1, 3);
+      return date.getTime() === presDay.getTime();
+    }
+  },
+  'memorial-day': {
+    name: "Memorial Day",
+    check: (date: Date): boolean => {
+      const memorialDay = getLastWeekdayOfMonth(date.getFullYear(), 4, 1);
+      return date.getTime() === memorialDay.getTime();
+    }
+  },
+  'juneteenth': {
+    name: "Juneteenth",
+    check: (date: Date): boolean => {
+      return date.getMonth() === 5 && date.getDate() === 19;
+    }
+  },
+  'independence-day': {
+    name: "Independence Day",
+    check: (date: Date): boolean => {
+      return date.getMonth() === 6 && date.getDate() === 4;
+    }
+  },
+  'labor-day': {
+    name: "Labor Day",
+    check: (date: Date): boolean => {
+      const laborDay = getNthWeekdayOfMonth(date.getFullYear(), 8, 1, 1);
+      return date.getTime() === laborDay.getTime();
+    }
+  },
+  'columbus-day': {
+    name: "Columbus Day",
+    check: (date: Date): boolean => {
+      const columbusDay = getNthWeekdayOfMonth(date.getFullYear(), 9, 1, 2);
+      return date.getTime() === columbusDay.getTime();
+    }
+  },
+  'veterans-day': {
+    name: "Veterans Day",
+    check: (date: Date): boolean => {
+      return date.getMonth() === 10 && date.getDate() === 11;
+    }
+  },
+  'thanksgiving-day': {
+    name: "Thanksgiving Day",
+    check: (date: Date): boolean => {
+      const thanksgiving = getNthWeekdayOfMonth(date.getFullYear(), 10, 4, 4);
+      return date.getTime() === thanksgiving.getTime();
+    }
+  },
+  'christmas-day': {
+    name: "Christmas Day",
+    check: (date: Date): boolean => {
+      return date.getMonth() === 11 && date.getDate() === 25;
+    }
+  }
+};
+
+/**
+ * Check if a given date string is a US holiday
+ * @param dateStr - Date string in 'yyyy-mm-dd' format
+ * @returns Holiday information or error information
+ */
+export const isUSHoliday = (dateStr: string): HolidayResult => {
+  // Validate date string format
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return {
+      id: 'error',
+      name: 'Date must be in yyyy-mm-dd format'
+    };
+  }
+
+  // Validate date components
+  const validation = validateDate(dateStr);
+  if (!validation.isValid) {
+    return {
+      id: 'error',
+      name: validation.errorMessage!
+    };
+  }
+
+  const date = createDate(dateStr);
+
+  // Check against all holiday configurations
+  for (const [id, config] of Object.entries(HOLIDAY_CONFIGS)) {
+    if (config.check(date)) {
+      return {
+        id,
+        name: config.name
+      };
+    }
+  }
+
+  return {
+    id: 'not-holiday',
+    name: `${dateStr} is not a holiday`
+  };
+};
+
+// /Users/adamchenwei/www/custom-sorting-image-viewer/app/utils/holidays.test.ts
+
+import { isUSHoliday } from "./holidays";
+
+// holidays.test.ts
+describe('isUSHoliday', () => {
+  describe('input validation', () => {
+    it('should return error for invalid date format', () => {
+      expect(isUSHoliday('2024/12/25')).toEqual({
+        id: 'error',
+        name: 'Date must be in yyyy-mm-dd format'
+      });
+      expect(isUSHoliday('12-25-2024')).toEqual({
+        id: 'error',
+        name: 'Date must be in yyyy-mm-dd format'
+      });
+      expect(isUSHoliday('invalid')).toEqual({
+        id: 'error',
+        name: 'Date must be in yyyy-mm-dd format'
+      });
+    });
+
+    it('should return error for invalid dates', () => {
+      expect(isUSHoliday('2024-13-01')).toEqual({
+        id: 'error',
+        name: 'Invalid month: 13. Month must be between 1 and 12'
+      });
+      expect(isUSHoliday('2024-00-01')).toEqual({
+        id: 'error',
+        name: 'Invalid month: 0. Month must be between 1 and 12'
+      });
+      expect(isUSHoliday('2024-12-32')).toEqual({
+        id: 'error',
+        name: 'Invalid day: 32. Day must be between 1 and 31 for month 12'
+      });
+    });
+  });
+
+  describe('fixed date holidays', () => {
+    it('should identify New Years Day', () => {
+      expect(isUSHoliday('2024-01-01')).toEqual({
+        id: 'new-years-day',
+        name: "New Year's Day"
+      });
+    });
+
+    it('should identify Juneteenth', () => {
+      expect(isUSHoliday('2024-06-19')).toEqual({
+        id: 'juneteenth',
+        name: 'Juneteenth'
+      });
+    });
+
+    it('should identify Independence Day', () => {
+      expect(isUSHoliday('2024-07-04')).toEqual({
+        id: 'independence-day',
+        name: 'Independence Day'
+      });
+    });
+
+    it('should identify Veterans Day', () => {
+      expect(isUSHoliday('2024-11-11')).toEqual({
+        id: 'veterans-day',
+        name: 'Veterans Day'
+      });
+    });
+
+    it('should identify Christmas Day', () => {
+      expect(isUSHoliday('2024-12-25')).toEqual({
+        id: 'christmas-day',
+        name: 'Christmas Day'
+      });
+    });
+  });
+
+  describe('floating holidays', () => {
+    it('should identify MLK Day (3rd Monday in January)', () => {
+      expect(isUSHoliday('2024-01-15')).toEqual({
+        id: 'martin-luther-king-jr-day',
+        name: 'Martin Luther King Jr. Day'
+      });
+      expect(isUSHoliday('2025-01-20')).toEqual({
+        id: 'martin-luther-king-jr-day',
+        name: 'Martin Luther King Jr. Day'
+      });
+    });
+
+    it('should identify Presidents Day (3rd Monday in February)', () => {
+      expect(isUSHoliday('2024-02-19')).toEqual({
+        id: 'presidents-day',
+        name: 'Presidents Day'
+      });
+    });
+
+    it('should identify Memorial Day (last Monday in May)', () => {
+      expect(isUSHoliday('2024-05-27')).toEqual({
+        id: 'memorial-day',
+        name: 'Memorial Day'
+      });
+    });
+
+    it('should identify Labor Day (1st Monday in September)', () => {
+      expect(isUSHoliday('2024-09-02')).toEqual({
+        id: 'labor-day',
+        name: 'Labor Day'
+      });
+    });
+
+    it('should identify Columbus Day (2nd Monday in October)', () => {
+      expect(isUSHoliday('2024-10-14')).toEqual({
+        id: 'columbus-day',
+        name: 'Columbus Day'
+      });
+    });
+
+    it('should identify Thanksgiving Day (4th Thursday in November)', () => {
+      expect(isUSHoliday('2024-11-28')).toEqual({
+        id: 'thanksgiving-day',
+        name: 'Thanksgiving Day'
+      });
+    });
+  });
+
+  describe('non-holidays', () => {
+    it('should return not-holiday for non-holiday dates', () => {
+      expect(isUSHoliday('2024-03-15')).toEqual({
+        id: 'not-holiday',
+        name: '2024-03-15 is not a holiday'
+      });
+      expect(isUSHoliday('2024-08-01')).toEqual({
+        id: 'not-holiday',
+        name: '2024-08-01 is not a holiday'
+      });
+      expect(isUSHoliday('2024-12-26')).toEqual({
+        id: 'not-holiday',
+        name: '2024-12-26 is not a holiday'
+      });
+    });
+
+    it('should return not-holiday for weekend dates that are not holidays', () => {
+      expect(isUSHoliday('2024-03-16')).toEqual({
+        id: 'not-holiday',
+        name: '2024-03-16 is not a holiday'
+      }); // Saturday
+      expect(isUSHoliday('2024-03-17')).toEqual({
+        id: 'not-holiday',
+        name: '2024-03-17 is not a holiday'
+      }); // Sunday
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle leap years correctly', () => {
+      expect(isUSHoliday('2024-02-19')).toEqual({
+        id: 'presidents-day',
+        name: 'Presidents Day'
+      });
+    });
+
+    it('should handle year transitions correctly', () => {
+      expect(isUSHoliday('2024-12-31')).toEqual({
+        id: 'not-holiday',
+        name: '2024-12-31 is not a holiday'
+      });
+      expect(isUSHoliday('2025-01-01')).toEqual({
+        id: 'new-years-day',
+        name: "New Year's Day"
+      });
+    });
+  });
+});
+
 // /Users/adamchenwei/www/custom-sorting-image-viewer/app/results/page.tsx
 
-// app/results/page.tsx
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
-import { ArrowRight, X } from "lucide-react";
-import { deleteImage, moveImage } from "../services/imageService";
+import { ArrowRight, X, CheckSquare, Square } from "lucide-react";
+import { moveImages, deleteImages } from "../services/imageService";
 import { MoveModal } from "../components/MoveModal";
 import { SorterModal } from "../components/SorterModal";
 
@@ -41,12 +400,12 @@ interface SortOptions {
 export default function ResultsPage() {
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [showSorter, setShowSorter] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
-  const [imageToMove, setImageToMove] = useState<ImageData | null>(null);
   const [currentSortOptions, setCurrentSortOptions] =
     useState<SortOptions | null>(null);
 
@@ -112,48 +471,79 @@ export default function ResultsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const handleMove = async (image: ImageData, targetPath: string) => {
+  const handleImageSelect = (
+    image: ImageData,
+    event: React.MouseEvent,
+    isCheckboxClick: boolean
+  ) => {
+    // If clicking the checkbox area, only toggle selection
+    if (isCheckboxClick) {
+      setSelectedImages((prev) => {
+        const newSelection = new Set(prev);
+        if (newSelection.has(image.assetPath)) {
+          newSelection.delete(image.assetPath);
+        } else {
+          newSelection.add(image.assetPath);
+        }
+        return newSelection;
+      });
+      return;
+    }
+
+    // For clicks outside checkbox area, update preview and clear multi-select
+    setSelectedImage(image);
+    setSelectedIndex(
+      images.findIndex((img) => img.assetPath === image.assetPath)
+    );
+    setSelectedImages(new Set());
+  };
+
+  const handleMove = async (targetPath: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Move the image and get the new data, passing the current sort options
-      const moveResult = await moveImage(
-        image.assetPath,
-        image.fileName,
+      const imagesToMove = Array.from(selectedImages).map((assetPath) => {
+        const image = images.find((img) => img.assetPath === assetPath);
+        return {
+          assetPath,
+          fileName: image!.fileName,
+        };
+      });
+
+      const moveResult = await moveImages(
+        imagesToMove,
         targetPath,
         currentSortOptions || undefined
       );
 
       if (moveResult.success && moveResult.data) {
-        // Update the images state with the new filtered data
         setImages(moveResult.data);
 
         // Update selected image if needed
         if (moveResult.data.length > 0) {
-          const movedImageIndex = moveResult.data.findIndex(
-            (img: ImageData) => img.fileName === image.fileName
+          const firstVisibleSelected = moveResult.data.find((img) =>
+            selectedImages.has(img.assetPath)
           );
-          if (movedImageIndex !== -1) {
-            setSelectedImage(moveResult.data[movedImageIndex]);
-            setSelectedIndex(movedImageIndex);
+          if (firstVisibleSelected) {
+            setSelectedImage(firstVisibleSelected);
+            setSelectedIndex(moveResult.data.indexOf(firstVisibleSelected));
           } else {
-            // If moved image is no longer in view (filtered out), select the first visible image
             setSelectedImage(moveResult.data[0]);
             setSelectedIndex(0);
           }
         } else {
-          // No images left in view
           setSelectedImage(null);
           setSelectedIndex(-1);
         }
       }
 
+      // Clear selections after move
+      setSelectedImages(new Set());
       setShowMoveModal(false);
-      setImageToMove(null);
     } catch (err) {
-      console.error("Error moving image:", err);
-      setError("Failed to move image");
+      console.error("Error moving images:", err);
+      setError("Failed to move images");
     } finally {
       setLoading(false);
     }
@@ -168,12 +558,23 @@ export default function ResultsPage() {
       setLoading(true);
       console.log("Deleting image:", image);
 
-      await deleteImage(image.assetPath, image.fileName);
+      await deleteImages([
+        { assetPath: image.assetPath, fileName: image.fileName },
+      ]);
 
       // Update local state
       setImages((prevImages) =>
         prevImages.filter((img) => img.assetPath !== image.assetPath)
       );
+
+      // Remove from selected images if it was selected
+      if (selectedImages.has(image.assetPath)) {
+        setSelectedImages((prev) => {
+          const newSelection = new Set(prev);
+          newSelection.delete(image.assetPath);
+          return newSelection;
+        });
+      }
 
       // If the deleted image was selected, select the next available image
       if (selectedImage?.assetPath === image.assetPath) {
@@ -194,6 +595,58 @@ export default function ResultsPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${selectedImages.size} images?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const imagesToDelete = Array.from(selectedImages).map((assetPath) => {
+        const image = images.find((img) => img.assetPath === assetPath);
+        return {
+          assetPath,
+          fileName: image!.fileName,
+        };
+      });
+
+      await deleteImages(imagesToDelete);
+
+      // Update local state
+      setImages((prevImages) =>
+        prevImages.filter((img) => !selectedImages.has(img.assetPath))
+      );
+
+      // If any of the deleted images was selected, select the first remaining image
+      if (selectedImage && selectedImages.has(selectedImage.assetPath)) {
+        const remainingImages = images.filter(
+          (img) => !selectedImages.has(img.assetPath)
+        );
+        if (remainingImages.length > 0) {
+          setSelectedImage(remainingImages[0]);
+          setSelectedIndex(0);
+        } else {
+          setSelectedImage(null);
+          setSelectedIndex(-1);
+        }
+      }
+
+      // Clear selections
+      setSelectedImages(new Set());
+    } catch (err) {
+      console.error("Error deleting images:", err);
+      setError("Failed to delete images");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleApplySort = async (options: SortOptions) => {
     try {
       setLoading(true);
@@ -209,17 +662,34 @@ export default function ResultsPage() {
     }
   };
 
-  // Rest of the component remains the same...
   return (
     <div className="flex h-screen">
       {/* Left side - Image list */}
       <div className="w-1/2 overflow-y-auto p-4">
-        <button
-          onClick={() => setShowSorter(true)}
-          className="mb-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Sort
-        </button>
+        <div className="flex space-x-2 mb-4">
+          <button
+            onClick={() => setShowSorter(true)}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Sort
+          </button>
+          {selectedImages.size > 0 && (
+            <>
+              <button
+                onClick={() => setShowMoveModal(true)}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Move Selected ({selectedImages.size})
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Delete Selected ({selectedImages.size})
+              </button>
+            </>
+          )}
+        </div>
 
         {error && (
           <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
@@ -245,14 +715,30 @@ export default function ResultsPage() {
               key={image.assetPath}
               className={`p-2 cursor-pointer rounded flex items-start group ${
                 selectedImage?.assetPath === image.assetPath
-                  ? "bg-blue-600 text-white"
-                  : "hover:bg-blue-400"
+                  ? "bg-blue-100 text-gray-500"
+                  : "hover:bg-gray-100 text-black"
+              } ${
+                selectedImages.has(image.assetPath)
+                  ? "bg-blue-50 text-black"
+                  : ""
               }`}
-              onClick={() => {
-                setSelectedImage(image);
-                setSelectedIndex(index);
-              }}
+              onClick={(e) => handleImageSelect(image, e, false)}
             >
+              {/* Checkbox */}
+              <div
+                className="flex-shrink-0 mr-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleImageSelect(image, e, true);
+                }}
+              >
+                {selectedImages.has(image.assetPath) ? (
+                  <CheckSquare className="text-blue-500" size={20} />
+                ) : (
+                  <Square className="text-gray-400" size={20} />
+                )}
+              </div>
+
               {/* Thumbnail Container */}
               <div className="flex-shrink-0 mr-3 relative w-16 h-16">
                 <Image
@@ -268,13 +754,7 @@ export default function ResultsPage() {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="break-words truncate">{image.fileName}</div>
-                <div
-                  className={`text-sm ${
-                    selectedImage?.assetPath === image.assetPath
-                      ? "text-blue-100"
-                      : "text-gray-500"
-                  }`}
-                >
+                <div className="text-sm text-gray-500">
                   {format(
                     new Date(
                       image.yyyy,
@@ -292,11 +772,7 @@ export default function ResultsPage() {
               {/* Action Buttons */}
               <div className="flex items-center ml-2 flex-shrink-0">
                 <button
-                  className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
-                    selectedImage?.assetPath === image.assetPath
-                      ? "hover:bg-blue-700 text-white"
-                      : "hover:bg-blue-500 text-gray-600 hover:text-white"
-                  }`}
+                  className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDelete(image, index);
@@ -306,14 +782,10 @@ export default function ResultsPage() {
                   <X size={16} />
                 </button>
                 <button
-                  className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
-                    selectedImage?.assetPath === image.assetPath
-                      ? "hover:bg-blue-700 text-white"
-                      : "hover:bg-blue-500 text-gray-600 hover:text-white"
-                  }`}
+                  className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setImageToMove(image);
+                    setSelectedImages(new Set([image.assetPath]));
                     setShowMoveModal(true);
                   }}
                   aria-label="Move image"
@@ -344,14 +816,15 @@ export default function ResultsPage() {
       </div>
 
       {/* Modals */}
-      {showMoveModal && imageToMove && (
+      {showMoveModal && selectedImages.size > 0 && (
         <MoveModal
           isOpen={showMoveModal}
           onClose={() => {
             setShowMoveModal(false);
-            setImageToMove(null);
+            setSelectedImages(new Set());
           }}
-          onSubmit={(targetPath) => handleMove(imageToMove, targetPath)}
+          onSubmit={handleMove}
+          selectionCount={selectedImages.size}
         />
       )}
 
@@ -368,17 +841,24 @@ export default function ResultsPage() {
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer/app/components/MoveModal.tsx
 
+// app/components/MoveModal.tsx
 import React, { useState, useEffect } from "react";
 
 interface MoveModalProps {
   onClose: () => void;
   onSubmit: (targetPath: string) => void;
   isOpen: boolean;
+  selectionCount?: number;
 }
 
 const MOVE_PATH_KEY = "imageMoveTargetPath";
 
-export function MoveModal({ onClose, onSubmit, isOpen }: MoveModalProps) {
+export function MoveModal({
+  onClose,
+  onSubmit,
+  isOpen,
+  selectionCount = 1,
+}: MoveModalProps) {
   const [targetPath, setTargetPath] = useState("");
 
   // Load from localStorage when modal opens
@@ -420,7 +900,9 @@ export function MoveModal({ onClose, onSubmit, isOpen }: MoveModalProps) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg w-96">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Move Image</h2>
+          <h2 className="text-xl font-bold">
+            Move {selectionCount} {selectionCount === 1 ? "Image" : "Images"}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
@@ -469,7 +951,6 @@ export function MoveModal({ onClose, onSubmit, isOpen }: MoveModalProps) {
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer/app/components/SorterModal.tsx
 
-// app/components/SorterModal.tsx
 import { useState, useEffect } from "react";
 import { format, addMinutes } from "date-fns";
 
@@ -487,7 +968,6 @@ interface SorterModalProps {
 }
 
 const SORT_OPTIONS_KEY = "imageSortOptions";
-
 const DAYS_OF_WEEK = [
   "Monday",
   "Tuesday",
@@ -509,7 +989,7 @@ function getDefaultOptions(): SortOptions {
     endDate: format(now, "yyyy-MM-dd"),
     startTime: format(now, "HH:mm"),
     endTime: format(later, "HH:mm"),
-    weeks: [DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1]], // Convert Sunday=0 to array index
+    weeks: [DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1]],
   };
 }
 
@@ -523,7 +1003,6 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure weeks array exists
         return {
           ...DEFAULT_OPTIONS,
           ...parsed,
@@ -555,6 +1034,17 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
       weeks: prev.weeks.includes(day)
         ? prev.weeks.filter((d) => d !== day)
         : [...prev.weeks, day],
+    }));
+  };
+
+  const handleNext15Minutes = () => {
+    const now = new Date();
+    const later = addMinutes(now, 15);
+
+    setOptions((prev) => ({
+      ...prev,
+      startTime: format(now, "HH:mm"),
+      endTime: format(later, "HH:mm"),
     }));
   };
 
@@ -611,9 +1101,18 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
-                Start Time
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Start Time
+                </label>
+                <button
+                  type="button"
+                  onClick={handleNext15Minutes}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Next 15 Minutes
+                </button>
+              </div>
               <input
                 type="time"
                 name="startTime"
@@ -851,8 +1350,10 @@ import path from 'path';
 import { getDay } from 'date-fns';
 
 interface MoveRequest {
-  assetPath: string;
-  fileName: string;
+  images: {
+    assetPath: string;
+    fileName: string;
+  }[];
   targetPath: string;
   sortOptions?: {
     startDate?: string;
@@ -952,15 +1453,47 @@ export async function POST(request: Request) {
     console.log('Move request received:', body);
     
     const publicDir = path.join(process.cwd(), 'public');
-    const currentPath = path.join(publicDir, 'images', body.fileName);
     const targetDir = path.join(publicDir, body.targetPath);
-    const targetPath = path.join(targetDir, body.fileName);
     
     // Create target directory if it doesn't exist
     await fs.mkdir(targetDir, { recursive: true });
     
-    // Move the file
-    await fs.rename(currentPath, targetPath);
+    // Keep track of successful and failed moves
+    const moveResults: { success: string[]; failed: string[] } = {
+      success: [],
+      failed: []
+    };
+
+    // Move all files
+    for (const image of body.images) {
+      try {
+        const currentPath = path.join(publicDir, 'images', image.fileName);
+        const targetPath = path.join(targetDir, image.fileName);
+        
+        // Check if source file exists
+        await fs.access(currentPath);
+        
+        // Check if target file already exists
+        try {
+          await fs.access(targetPath);
+          moveResults.failed.push(`${image.fileName} (already exists in target directory)`);
+          continue;
+        } catch {
+          // Target doesn't exist, we can proceed
+        }
+        
+        // Perform the move
+        await fs.rename(currentPath, targetPath);
+        moveResults.success.push(image.fileName);
+      } catch (error) {
+        console.error(`Failed to move ${image.fileName}:`, error);
+        moveResults.failed.push(image.fileName);
+      }
+    }
+    
+    if (moveResults.success.length === 0) {
+      throw new Error('No files were successfully moved');
+    }
     
     // Update data.json
     console.log('Updating data.json...');
@@ -968,34 +1501,45 @@ export async function POST(request: Request) {
     const dataContent = await fs.readFile(dataPath, 'utf-8');
     let imageData: ImageData[] = JSON.parse(dataContent);
     
-    // Find the moved image in the data
-    const movedImageIndex = imageData.findIndex(item => item.assetPath === body.assetPath);
-    
-    if (movedImageIndex !== -1) {
-      // Update the asset path for the moved image
-      const relativePath = path.relative(publicDir, targetPath);
-      imageData[movedImageIndex].assetPath = '/' + relativePath.replace(/\\/g, '/');
-      
-      // Write the updated data back to data.json
-      await fs.writeFile(dataPath, JSON.stringify(imageData, null, 2));
-      
-      // Apply sort options if they exist
-      const sortedData = body.sortOptions ? applySortOptions(imageData, body.sortOptions) : imageData;
-      
-      return NextResponse.json({ 
-        success: true,
-        message: 'Image moved successfully and data.json updated',
-        newPath: targetPath,
-        newData: sortedData
-      });
-    } else {
-      throw new Error('Image not found in data.json');
+    // Update the asset paths for successfully moved images
+    let updatedCount = 0;
+    imageData = imageData.map(item => {
+      const matchingImage = body.images.find(img => img.assetPath === item.assetPath);
+      if (matchingImage && moveResults.success.includes(matchingImage.fileName)) {
+        updatedCount++;
+        const relativePath = path.join(body.targetPath, item.fileName);
+        return {
+          ...item,
+          assetPath: '/' + relativePath.replace(/\\/g, '/')
+        };
+      }
+      return item;
+    });
+
+    if (updatedCount === 0) {
+      throw new Error('Failed to update image data');
     }
+    
+    // Write the updated data back to data.json
+    await fs.writeFile(dataPath, JSON.stringify(imageData, null, 2));
+    
+    // Apply sort options if they exist
+    const sortedData = body.sortOptions ? applySortOptions(imageData, body.sortOptions) : imageData;
+    
+    // Return response with results
+    return NextResponse.json({ 
+      success: true,
+      message: 'Images processed',
+      results: moveResults,
+      newData: sortedData
+    });
+
   } catch (error: any) {
     console.error('Move API Error:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to move image',
+        success: false,
+        error: 'Failed to move images',
         details: error.message
       },
       { status: 500 }
@@ -1005,14 +1549,15 @@ export async function POST(request: Request) {
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer/app/api/images/delete/route.ts
 
-// app/api/images/delete/route.ts
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 
 interface DeleteRequest {
-  assetPath: string;
-  fileName: string;
+  images: {
+    assetPath: string;
+    fileName: string;
+  }[];
 }
 
 export async function POST(request: Request) {
@@ -1020,65 +1565,68 @@ export async function POST(request: Request) {
     const body: DeleteRequest = await request.json();
     console.log('Delete request received:', body);
     
-    // 1. Delete the file from public/images
-    const imagePath = path.join(process.cwd(), 'public', 'images', body.fileName);
-    console.log('Attempting to delete file at:', imagePath);
-    
-    try {
-      const stats = await fs.stat(imagePath);
-      console.log('File exists:', stats.isFile());
-      
-      // Delete the actual image file
-      await fs.unlink(imagePath);
-      console.log('Successfully deleted image file');
-    } catch (error: any) {
-      console.error('Error during file deletion:', {
-        error: error.message,
-        code: error.code,
-        path: imagePath
-      });
-      
-      return NextResponse.json(
-        { 
-          error: 'Image file could not be deleted',
-          details: error.message,
-          path: imagePath
-        },
-        { status: 500 }
-      );
+    const deleteResults: { success: string[]; failed: string[] } = {
+      success: [],
+      failed: []
+    };
+
+    // Process each image
+    for (const image of body.images) {
+      try {
+        const imagePath = path.join(process.cwd(), 'public', 'images', image.fileName);
+        console.log('Attempting to delete file at:', imagePath);
+        
+        // Check if file exists and delete it
+        try {
+          const stats = await fs.stat(imagePath);
+          if (stats.isFile()) {
+            await fs.unlink(imagePath);
+            deleteResults.success.push(image.fileName);
+          } else {
+            deleteResults.failed.push(`${image.fileName} (not a file)`);
+          }
+        } catch (error: any) {
+          console.error(`Error deleting ${image.fileName}:`, error);
+          deleteResults.failed.push(image.fileName);
+        }
+      } catch (error) {
+        console.error(`Error processing ${image.fileName}:`, error);
+        deleteResults.failed.push(image.fileName);
+      }
     }
 
-    // 2. Update data.json
+    // Update data.json
     const dataPath = path.join(process.cwd(), 'public', 'data.json');
-    console.log('Updating data.json at:', dataPath);
+    const dataContent = await fs.readFile(dataPath, 'utf-8');
+    const data = JSON.parse(dataContent);
     
-    try {
-      const dataContent = await fs.readFile(dataPath, 'utf-8');
-      const data = JSON.parse(dataContent);
-      
-      console.log('Current data entries:', data.length);
-      const updatedData = data.filter((item: any) => item.assetPath !== body.assetPath);
-      console.log('Updated data entries:', updatedData.length);
-      
-      await fs.writeFile(dataPath, JSON.stringify(updatedData, null, 2));
-      console.log('Successfully updated data.json');
-      
-      return NextResponse.json({ 
-        success: true,
-        message: 'Image and data entry successfully deleted',
-        deletedFile: imagePath
-      });
-    } catch (error) {
-      console.error('Error updating data.json:', error);
-      return NextResponse.json(
-        { error: 'Failed to update data.json' },
-        { status: 500 }
-      );
-    }
-  } catch (error) {
+    // Filter out deleted images
+    const successfullyDeletedPaths = new Set(
+      body.images
+        .filter(img => deleteResults.success.includes(img.fileName))
+        .map(img => img.assetPath)
+    );
+    
+    const updatedData = data.filter((item: any) => !successfullyDeletedPaths.has(item.assetPath));
+    
+    // Write updated data back to file
+    await fs.writeFile(dataPath, JSON.stringify(updatedData, null, 2));
+    
+    return NextResponse.json({ 
+      success: true,
+      message: 'Images processed',
+      results: deleteResults,
+      remainingImages: updatedData
+    });
+    
+  } catch (error: any) {
     console.error('Delete API Error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { 
+        success: false,
+        error: 'Failed to delete images',
+        details: error.message
+      },
       { status: 500 }
     );
   }
@@ -1246,14 +1794,18 @@ interface SortOptions {
   weeks: string[];
 }
 
-export async function moveImage(
-  assetPath: string, 
-  fileName: string, 
+interface ImageToMove {
+  assetPath: string;
+  fileName: string;
+}
+
+export async function moveImages(
+  images: ImageToMove[],
   targetPath: string,
   sortOptions?: SortOptions
-): Promise<{ success: boolean, data?: any[] }> {
+): Promise<{ success: boolean; data?: any[] }> {
   try {
-    console.log('Sending move request for:', { assetPath, fileName, targetPath, sortOptions });
+    console.log('Sending bulk move request for:', { images, targetPath, sortOptions });
     
     const response = await fetch('/api/images/move', {
       method: 'POST',
@@ -1261,10 +1813,9 @@ export async function moveImage(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
-        assetPath, 
-        fileName, 
+        images,
         targetPath,
-        sortOptions // Include sort options in the request
+        sortOptions
       }),
     });
 
@@ -1272,46 +1823,47 @@ export async function moveImage(
     
     if (!response.ok) {
       console.error('Move request failed:', result);
-      throw new Error(result.error || 'Failed to move image');
+      throw new Error(result.error || 'Failed to move images');
     }
 
-    // Return the filtered data based on current sort options
     return {
       success: true,
       data: result.newData
     };
   } catch (error) {
-    console.error('Error in moveImage service:', error);
+    console.error('Error in moveImages service:', error);
     throw error;
   }
 }
-
-export async function deleteImage(assetPath: string, fileName: string): Promise<boolean> {
+export async function deleteImages(
+  images: { assetPath: string; fileName: string }[]
+): Promise<boolean> {
   try {
-    console.log('Sending delete request for:', { assetPath, fileName });
+    console.log('Sending bulk delete request for:', images);
     
     const response = await fetch('/api/images/delete', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ assetPath, fileName }),
+      body: JSON.stringify({ images }),
     });
 
     const result = await response.json();
     
     if (!response.ok) {
-      console.error('Delete request failed:', result);
-      throw new Error(result.error || 'Failed to delete image');
+      console.error('Bulk delete request failed:', result);
+      throw new Error(result.error || 'Failed to delete images');
     }
 
-    console.log('Delete response:', result);
+    console.log('Bulk delete response:', result);
     return true;
   } catch (error) {
-    console.error('Error in deleteImage service:', error);
+    console.error('Error in deleteImages service:', error);
     throw error;
   }
 }
+
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer/tsconfig.json
 
@@ -1319,9 +1871,7 @@ export async function deleteImage(assetPath: string, fileName: string): Promise<
   "compilerOptions": {
     "target": "es2017",
     "module": "commonjs",
-    "lib": [
-      "es2017"
-    ],
+    "lib": ["es2017", "dom"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -1333,6 +1883,10 @@ export async function deleteImage(assetPath: string, fileName: string): Promise<
     "incremental": true,
     "isolatedModules": true,
     "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./app/*"]
+    },
     "plugins": [
       {
         "name": "next"
@@ -1340,8 +1894,13 @@ export async function deleteImage(assetPath: string, fileName: string): Promise<
     ]
   },
   "include": [
+    "app/**/*",
     "scripts/**/*",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "jest.config.ts",
+    "jest.setup.ts"
   ],
   "exclude": [
     "node_modules"
@@ -1358,10 +1917,13 @@ export async function deleteImage(assetPath: string, fileName: string): Promise<
   "scripts": {
     "start": "next start",
     "lint": "next lint",
-    "process-images": "ts-node scripts/processImages.ts",
+    "process-images": "ts-node scripts/process-images-cli.ts",
     "dev": "npm run process-images && next dev",
     "prompt": "./scripts/consolidate-app-custom-sorting-image-viewer.sh ./app/ --exclude node_modules dist",
-    "build": "npm run process-images && next build"
+    "build": "npm run process-images && next build",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
@@ -1371,15 +1933,21 @@ export async function deleteImage(assetPath: string, fileName: string): Promise<
     "react-dom": "^18"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/jest": "^29.5.14",
     "@types/node": "^20.17.10",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.13",
     "install": "^0.13.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "npm": "^11.0.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   }
@@ -1411,15 +1979,374 @@ export default config;
 
 # Content from main directory: /Users/adamchenwei/www/custom-sorting-image-viewer/
 
+// /Users/adamchenwei/www/custom-sorting-image-viewer//app/utils/holidays.ts
+
+interface HolidayConfig {
+  name: string;
+  check: (date: Date) => boolean;
+}
+
+interface HolidayResult {
+  id: string;
+  name: string;
+}
+
+type HolidayConfigs = {
+  [key: string]: HolidayConfig;
+};
+
+// Helper function for timezone-safe date validation
+const validateDate = (dateStr: string): { isValid: boolean; errorMessage?: string } => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  
+  // Validate month (1-12)
+  if (month < 1 || month > 12) {
+    return { 
+      isValid: false, 
+      errorMessage: `Invalid month: ${month}. Month must be between 1 and 12`
+    };
+  }
+  
+  // Validate day based on month
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (day < 1 || day > daysInMonth) {
+    return { 
+      isValid: false, 
+      errorMessage: `Invalid day: ${day}. Day must be between 1 and ${daysInMonth} for month ${month}`
+    };
+  }
+  
+  return { isValid: true };
+};
+
+// Helper function for timezone-safe date creation
+const createDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+// Helper function to get the nth occurrence of a weekday in a month
+const getNthWeekdayOfMonth = (year: number, month: number, weekday: number, n: number): Date => {
+  const date = new Date(year, month, 1);
+  
+  // Find the first occurrence of weekday
+  while (date.getDay() !== weekday) {
+    date.setDate(date.getDate() + 1);
+  }
+  
+  // Add weeks until we reach the nth occurrence
+  date.setDate(date.getDate() + (n - 1) * 7);
+  
+  return date;
+};
+
+// Helper function to get the last occurrence of a weekday in a month
+const getLastWeekdayOfMonth = (year: number, month: number, weekday: number): Date => {
+  const date = new Date(year, month + 1, 0); // Last day of the month
+  
+  while (date.getDay() !== weekday) {
+    date.setDate(date.getDate() - 1);
+  }
+  
+  return date;
+};
+
+const HOLIDAY_CONFIGS: HolidayConfigs = {
+  'new-years-day': {
+    name: "New Year's Day",
+    check: (date: Date): boolean => {
+      return date.getMonth() === 0 && date.getDate() === 1;
+    }
+  },
+  'martin-luther-king-jr-day': {
+    name: "Martin Luther King Jr. Day",
+    check: (date: Date): boolean => {
+      const mlkDay = getNthWeekdayOfMonth(date.getFullYear(), 0, 1, 3);
+      return date.getTime() === mlkDay.getTime();
+    }
+  },
+  'presidents-day': {
+    name: "Presidents Day",
+    check: (date: Date): boolean => {
+      const presDay = getNthWeekdayOfMonth(date.getFullYear(), 1, 1, 3);
+      return date.getTime() === presDay.getTime();
+    }
+  },
+  'memorial-day': {
+    name: "Memorial Day",
+    check: (date: Date): boolean => {
+      const memorialDay = getLastWeekdayOfMonth(date.getFullYear(), 4, 1);
+      return date.getTime() === memorialDay.getTime();
+    }
+  },
+  'juneteenth': {
+    name: "Juneteenth",
+    check: (date: Date): boolean => {
+      return date.getMonth() === 5 && date.getDate() === 19;
+    }
+  },
+  'independence-day': {
+    name: "Independence Day",
+    check: (date: Date): boolean => {
+      return date.getMonth() === 6 && date.getDate() === 4;
+    }
+  },
+  'labor-day': {
+    name: "Labor Day",
+    check: (date: Date): boolean => {
+      const laborDay = getNthWeekdayOfMonth(date.getFullYear(), 8, 1, 1);
+      return date.getTime() === laborDay.getTime();
+    }
+  },
+  'columbus-day': {
+    name: "Columbus Day",
+    check: (date: Date): boolean => {
+      const columbusDay = getNthWeekdayOfMonth(date.getFullYear(), 9, 1, 2);
+      return date.getTime() === columbusDay.getTime();
+    }
+  },
+  'veterans-day': {
+    name: "Veterans Day",
+    check: (date: Date): boolean => {
+      return date.getMonth() === 10 && date.getDate() === 11;
+    }
+  },
+  'thanksgiving-day': {
+    name: "Thanksgiving Day",
+    check: (date: Date): boolean => {
+      const thanksgiving = getNthWeekdayOfMonth(date.getFullYear(), 10, 4, 4);
+      return date.getTime() === thanksgiving.getTime();
+    }
+  },
+  'christmas-day': {
+    name: "Christmas Day",
+    check: (date: Date): boolean => {
+      return date.getMonth() === 11 && date.getDate() === 25;
+    }
+  }
+};
+
+/**
+ * Check if a given date string is a US holiday
+ * @param dateStr - Date string in 'yyyy-mm-dd' format
+ * @returns Holiday information or error information
+ */
+export const isUSHoliday = (dateStr: string): HolidayResult => {
+  // Validate date string format
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return {
+      id: 'error',
+      name: 'Date must be in yyyy-mm-dd format'
+    };
+  }
+
+  // Validate date components
+  const validation = validateDate(dateStr);
+  if (!validation.isValid) {
+    return {
+      id: 'error',
+      name: validation.errorMessage!
+    };
+  }
+
+  const date = createDate(dateStr);
+
+  // Check against all holiday configurations
+  for (const [id, config] of Object.entries(HOLIDAY_CONFIGS)) {
+    if (config.check(date)) {
+      return {
+        id,
+        name: config.name
+      };
+    }
+  }
+
+  return {
+    id: 'not-holiday',
+    name: `${dateStr} is not a holiday`
+  };
+};
+
+// /Users/adamchenwei/www/custom-sorting-image-viewer//app/utils/holidays.test.ts
+
+import { isUSHoliday } from "./holidays";
+
+// holidays.test.ts
+describe('isUSHoliday', () => {
+  describe('input validation', () => {
+    it('should return error for invalid date format', () => {
+      expect(isUSHoliday('2024/12/25')).toEqual({
+        id: 'error',
+        name: 'Date must be in yyyy-mm-dd format'
+      });
+      expect(isUSHoliday('12-25-2024')).toEqual({
+        id: 'error',
+        name: 'Date must be in yyyy-mm-dd format'
+      });
+      expect(isUSHoliday('invalid')).toEqual({
+        id: 'error',
+        name: 'Date must be in yyyy-mm-dd format'
+      });
+    });
+
+    it('should return error for invalid dates', () => {
+      expect(isUSHoliday('2024-13-01')).toEqual({
+        id: 'error',
+        name: 'Invalid month: 13. Month must be between 1 and 12'
+      });
+      expect(isUSHoliday('2024-00-01')).toEqual({
+        id: 'error',
+        name: 'Invalid month: 0. Month must be between 1 and 12'
+      });
+      expect(isUSHoliday('2024-12-32')).toEqual({
+        id: 'error',
+        name: 'Invalid day: 32. Day must be between 1 and 31 for month 12'
+      });
+    });
+  });
+
+  describe('fixed date holidays', () => {
+    it('should identify New Years Day', () => {
+      expect(isUSHoliday('2024-01-01')).toEqual({
+        id: 'new-years-day',
+        name: "New Year's Day"
+      });
+    });
+
+    it('should identify Juneteenth', () => {
+      expect(isUSHoliday('2024-06-19')).toEqual({
+        id: 'juneteenth',
+        name: 'Juneteenth'
+      });
+    });
+
+    it('should identify Independence Day', () => {
+      expect(isUSHoliday('2024-07-04')).toEqual({
+        id: 'independence-day',
+        name: 'Independence Day'
+      });
+    });
+
+    it('should identify Veterans Day', () => {
+      expect(isUSHoliday('2024-11-11')).toEqual({
+        id: 'veterans-day',
+        name: 'Veterans Day'
+      });
+    });
+
+    it('should identify Christmas Day', () => {
+      expect(isUSHoliday('2024-12-25')).toEqual({
+        id: 'christmas-day',
+        name: 'Christmas Day'
+      });
+    });
+  });
+
+  describe('floating holidays', () => {
+    it('should identify MLK Day (3rd Monday in January)', () => {
+      expect(isUSHoliday('2024-01-15')).toEqual({
+        id: 'martin-luther-king-jr-day',
+        name: 'Martin Luther King Jr. Day'
+      });
+      expect(isUSHoliday('2025-01-20')).toEqual({
+        id: 'martin-luther-king-jr-day',
+        name: 'Martin Luther King Jr. Day'
+      });
+    });
+
+    it('should identify Presidents Day (3rd Monday in February)', () => {
+      expect(isUSHoliday('2024-02-19')).toEqual({
+        id: 'presidents-day',
+        name: 'Presidents Day'
+      });
+    });
+
+    it('should identify Memorial Day (last Monday in May)', () => {
+      expect(isUSHoliday('2024-05-27')).toEqual({
+        id: 'memorial-day',
+        name: 'Memorial Day'
+      });
+    });
+
+    it('should identify Labor Day (1st Monday in September)', () => {
+      expect(isUSHoliday('2024-09-02')).toEqual({
+        id: 'labor-day',
+        name: 'Labor Day'
+      });
+    });
+
+    it('should identify Columbus Day (2nd Monday in October)', () => {
+      expect(isUSHoliday('2024-10-14')).toEqual({
+        id: 'columbus-day',
+        name: 'Columbus Day'
+      });
+    });
+
+    it('should identify Thanksgiving Day (4th Thursday in November)', () => {
+      expect(isUSHoliday('2024-11-28')).toEqual({
+        id: 'thanksgiving-day',
+        name: 'Thanksgiving Day'
+      });
+    });
+  });
+
+  describe('non-holidays', () => {
+    it('should return not-holiday for non-holiday dates', () => {
+      expect(isUSHoliday('2024-03-15')).toEqual({
+        id: 'not-holiday',
+        name: '2024-03-15 is not a holiday'
+      });
+      expect(isUSHoliday('2024-08-01')).toEqual({
+        id: 'not-holiday',
+        name: '2024-08-01 is not a holiday'
+      });
+      expect(isUSHoliday('2024-12-26')).toEqual({
+        id: 'not-holiday',
+        name: '2024-12-26 is not a holiday'
+      });
+    });
+
+    it('should return not-holiday for weekend dates that are not holidays', () => {
+      expect(isUSHoliday('2024-03-16')).toEqual({
+        id: 'not-holiday',
+        name: '2024-03-16 is not a holiday'
+      }); // Saturday
+      expect(isUSHoliday('2024-03-17')).toEqual({
+        id: 'not-holiday',
+        name: '2024-03-17 is not a holiday'
+      }); // Sunday
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle leap years correctly', () => {
+      expect(isUSHoliday('2024-02-19')).toEqual({
+        id: 'presidents-day',
+        name: 'Presidents Day'
+      });
+    });
+
+    it('should handle year transitions correctly', () => {
+      expect(isUSHoliday('2024-12-31')).toEqual({
+        id: 'not-holiday',
+        name: '2024-12-31 is not a holiday'
+      });
+      expect(isUSHoliday('2025-01-01')).toEqual({
+        id: 'new-years-day',
+        name: "New Year's Day"
+      });
+    });
+  });
+});
+
 // /Users/adamchenwei/www/custom-sorting-image-viewer//app/results/page.tsx
 
-// app/results/page.tsx
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
-import { ArrowRight, X } from "lucide-react";
-import { deleteImage, moveImage } from "../services/imageService";
+import { ArrowRight, X, CheckSquare, Square } from "lucide-react";
+import { moveImages, deleteImages } from "../services/imageService";
 import { MoveModal } from "../components/MoveModal";
 import { SorterModal } from "../components/SorterModal";
 
@@ -1445,12 +2372,12 @@ interface SortOptions {
 export default function ResultsPage() {
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [showSorter, setShowSorter] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
-  const [imageToMove, setImageToMove] = useState<ImageData | null>(null);
   const [currentSortOptions, setCurrentSortOptions] =
     useState<SortOptions | null>(null);
 
@@ -1516,48 +2443,79 @@ export default function ResultsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const handleMove = async (image: ImageData, targetPath: string) => {
+  const handleImageSelect = (
+    image: ImageData,
+    event: React.MouseEvent,
+    isCheckboxClick: boolean
+  ) => {
+    // If clicking the checkbox area, only toggle selection
+    if (isCheckboxClick) {
+      setSelectedImages((prev) => {
+        const newSelection = new Set(prev);
+        if (newSelection.has(image.assetPath)) {
+          newSelection.delete(image.assetPath);
+        } else {
+          newSelection.add(image.assetPath);
+        }
+        return newSelection;
+      });
+      return;
+    }
+
+    // For clicks outside checkbox area, update preview and clear multi-select
+    setSelectedImage(image);
+    setSelectedIndex(
+      images.findIndex((img) => img.assetPath === image.assetPath)
+    );
+    setSelectedImages(new Set());
+  };
+
+  const handleMove = async (targetPath: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Move the image and get the new data, passing the current sort options
-      const moveResult = await moveImage(
-        image.assetPath,
-        image.fileName,
+      const imagesToMove = Array.from(selectedImages).map((assetPath) => {
+        const image = images.find((img) => img.assetPath === assetPath);
+        return {
+          assetPath,
+          fileName: image!.fileName,
+        };
+      });
+
+      const moveResult = await moveImages(
+        imagesToMove,
         targetPath,
         currentSortOptions || undefined
       );
 
       if (moveResult.success && moveResult.data) {
-        // Update the images state with the new filtered data
         setImages(moveResult.data);
 
         // Update selected image if needed
         if (moveResult.data.length > 0) {
-          const movedImageIndex = moveResult.data.findIndex(
-            (img: ImageData) => img.fileName === image.fileName
+          const firstVisibleSelected = moveResult.data.find((img) =>
+            selectedImages.has(img.assetPath)
           );
-          if (movedImageIndex !== -1) {
-            setSelectedImage(moveResult.data[movedImageIndex]);
-            setSelectedIndex(movedImageIndex);
+          if (firstVisibleSelected) {
+            setSelectedImage(firstVisibleSelected);
+            setSelectedIndex(moveResult.data.indexOf(firstVisibleSelected));
           } else {
-            // If moved image is no longer in view (filtered out), select the first visible image
             setSelectedImage(moveResult.data[0]);
             setSelectedIndex(0);
           }
         } else {
-          // No images left in view
           setSelectedImage(null);
           setSelectedIndex(-1);
         }
       }
 
+      // Clear selections after move
+      setSelectedImages(new Set());
       setShowMoveModal(false);
-      setImageToMove(null);
     } catch (err) {
-      console.error("Error moving image:", err);
-      setError("Failed to move image");
+      console.error("Error moving images:", err);
+      setError("Failed to move images");
     } finally {
       setLoading(false);
     }
@@ -1572,12 +2530,23 @@ export default function ResultsPage() {
       setLoading(true);
       console.log("Deleting image:", image);
 
-      await deleteImage(image.assetPath, image.fileName);
+      await deleteImages([
+        { assetPath: image.assetPath, fileName: image.fileName },
+      ]);
 
       // Update local state
       setImages((prevImages) =>
         prevImages.filter((img) => img.assetPath !== image.assetPath)
       );
+
+      // Remove from selected images if it was selected
+      if (selectedImages.has(image.assetPath)) {
+        setSelectedImages((prev) => {
+          const newSelection = new Set(prev);
+          newSelection.delete(image.assetPath);
+          return newSelection;
+        });
+      }
 
       // If the deleted image was selected, select the next available image
       if (selectedImage?.assetPath === image.assetPath) {
@@ -1598,6 +2567,58 @@ export default function ResultsPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${selectedImages.size} images?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const imagesToDelete = Array.from(selectedImages).map((assetPath) => {
+        const image = images.find((img) => img.assetPath === assetPath);
+        return {
+          assetPath,
+          fileName: image!.fileName,
+        };
+      });
+
+      await deleteImages(imagesToDelete);
+
+      // Update local state
+      setImages((prevImages) =>
+        prevImages.filter((img) => !selectedImages.has(img.assetPath))
+      );
+
+      // If any of the deleted images was selected, select the first remaining image
+      if (selectedImage && selectedImages.has(selectedImage.assetPath)) {
+        const remainingImages = images.filter(
+          (img) => !selectedImages.has(img.assetPath)
+        );
+        if (remainingImages.length > 0) {
+          setSelectedImage(remainingImages[0]);
+          setSelectedIndex(0);
+        } else {
+          setSelectedImage(null);
+          setSelectedIndex(-1);
+        }
+      }
+
+      // Clear selections
+      setSelectedImages(new Set());
+    } catch (err) {
+      console.error("Error deleting images:", err);
+      setError("Failed to delete images");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleApplySort = async (options: SortOptions) => {
     try {
       setLoading(true);
@@ -1613,17 +2634,34 @@ export default function ResultsPage() {
     }
   };
 
-  // Rest of the component remains the same...
   return (
     <div className="flex h-screen">
       {/* Left side - Image list */}
       <div className="w-1/2 overflow-y-auto p-4">
-        <button
-          onClick={() => setShowSorter(true)}
-          className="mb-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Sort
-        </button>
+        <div className="flex space-x-2 mb-4">
+          <button
+            onClick={() => setShowSorter(true)}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Sort
+          </button>
+          {selectedImages.size > 0 && (
+            <>
+              <button
+                onClick={() => setShowMoveModal(true)}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Move Selected ({selectedImages.size})
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Delete Selected ({selectedImages.size})
+              </button>
+            </>
+          )}
+        </div>
 
         {error && (
           <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
@@ -1649,14 +2687,30 @@ export default function ResultsPage() {
               key={image.assetPath}
               className={`p-2 cursor-pointer rounded flex items-start group ${
                 selectedImage?.assetPath === image.assetPath
-                  ? "bg-blue-600 text-white"
-                  : "hover:bg-blue-400"
+                  ? "bg-blue-100 text-gray-500"
+                  : "hover:bg-gray-100 text-black"
+              } ${
+                selectedImages.has(image.assetPath)
+                  ? "bg-blue-50 text-black"
+                  : ""
               }`}
-              onClick={() => {
-                setSelectedImage(image);
-                setSelectedIndex(index);
-              }}
+              onClick={(e) => handleImageSelect(image, e, false)}
             >
+              {/* Checkbox */}
+              <div
+                className="flex-shrink-0 mr-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleImageSelect(image, e, true);
+                }}
+              >
+                {selectedImages.has(image.assetPath) ? (
+                  <CheckSquare className="text-blue-500" size={20} />
+                ) : (
+                  <Square className="text-gray-400" size={20} />
+                )}
+              </div>
+
               {/* Thumbnail Container */}
               <div className="flex-shrink-0 mr-3 relative w-16 h-16">
                 <Image
@@ -1672,13 +2726,7 @@ export default function ResultsPage() {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="break-words truncate">{image.fileName}</div>
-                <div
-                  className={`text-sm ${
-                    selectedImage?.assetPath === image.assetPath
-                      ? "text-blue-100"
-                      : "text-gray-500"
-                  }`}
-                >
+                <div className="text-sm text-gray-500">
                   {format(
                     new Date(
                       image.yyyy,
@@ -1696,11 +2744,7 @@ export default function ResultsPage() {
               {/* Action Buttons */}
               <div className="flex items-center ml-2 flex-shrink-0">
                 <button
-                  className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
-                    selectedImage?.assetPath === image.assetPath
-                      ? "hover:bg-blue-700 text-white"
-                      : "hover:bg-blue-500 text-gray-600 hover:text-white"
-                  }`}
+                  className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDelete(image, index);
@@ -1710,14 +2754,10 @@ export default function ResultsPage() {
                   <X size={16} />
                 </button>
                 <button
-                  className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
-                    selectedImage?.assetPath === image.assetPath
-                      ? "hover:bg-blue-700 text-white"
-                      : "hover:bg-blue-500 text-gray-600 hover:text-white"
-                  }`}
+                  className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setImageToMove(image);
+                    setSelectedImages(new Set([image.assetPath]));
                     setShowMoveModal(true);
                   }}
                   aria-label="Move image"
@@ -1748,14 +2788,15 @@ export default function ResultsPage() {
       </div>
 
       {/* Modals */}
-      {showMoveModal && imageToMove && (
+      {showMoveModal && selectedImages.size > 0 && (
         <MoveModal
           isOpen={showMoveModal}
           onClose={() => {
             setShowMoveModal(false);
-            setImageToMove(null);
+            setSelectedImages(new Set());
           }}
-          onSubmit={(targetPath) => handleMove(imageToMove, targetPath)}
+          onSubmit={handleMove}
+          selectionCount={selectedImages.size}
         />
       )}
 
@@ -1772,17 +2813,24 @@ export default function ResultsPage() {
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer//app/components/MoveModal.tsx
 
+// app/components/MoveModal.tsx
 import React, { useState, useEffect } from "react";
 
 interface MoveModalProps {
   onClose: () => void;
   onSubmit: (targetPath: string) => void;
   isOpen: boolean;
+  selectionCount?: number;
 }
 
 const MOVE_PATH_KEY = "imageMoveTargetPath";
 
-export function MoveModal({ onClose, onSubmit, isOpen }: MoveModalProps) {
+export function MoveModal({
+  onClose,
+  onSubmit,
+  isOpen,
+  selectionCount = 1,
+}: MoveModalProps) {
   const [targetPath, setTargetPath] = useState("");
 
   // Load from localStorage when modal opens
@@ -1824,7 +2872,9 @@ export function MoveModal({ onClose, onSubmit, isOpen }: MoveModalProps) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg w-96">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Move Image</h2>
+          <h2 className="text-xl font-bold">
+            Move {selectionCount} {selectionCount === 1 ? "Image" : "Images"}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
@@ -1873,7 +2923,6 @@ export function MoveModal({ onClose, onSubmit, isOpen }: MoveModalProps) {
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer//app/components/SorterModal.tsx
 
-// app/components/SorterModal.tsx
 import { useState, useEffect } from "react";
 import { format, addMinutes } from "date-fns";
 
@@ -1891,7 +2940,6 @@ interface SorterModalProps {
 }
 
 const SORT_OPTIONS_KEY = "imageSortOptions";
-
 const DAYS_OF_WEEK = [
   "Monday",
   "Tuesday",
@@ -1913,7 +2961,7 @@ function getDefaultOptions(): SortOptions {
     endDate: format(now, "yyyy-MM-dd"),
     startTime: format(now, "HH:mm"),
     endTime: format(later, "HH:mm"),
-    weeks: [DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1]], // Convert Sunday=0 to array index
+    weeks: [DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1]],
   };
 }
 
@@ -1927,7 +2975,6 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure weeks array exists
         return {
           ...DEFAULT_OPTIONS,
           ...parsed,
@@ -1959,6 +3006,17 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
       weeks: prev.weeks.includes(day)
         ? prev.weeks.filter((d) => d !== day)
         : [...prev.weeks, day],
+    }));
+  };
+
+  const handleNext15Minutes = () => {
+    const now = new Date();
+    const later = addMinutes(now, 15);
+
+    setOptions((prev) => ({
+      ...prev,
+      startTime: format(now, "HH:mm"),
+      endTime: format(later, "HH:mm"),
     }));
   };
 
@@ -2015,9 +3073,18 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
-                Start Time
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Start Time
+                </label>
+                <button
+                  type="button"
+                  onClick={handleNext15Minutes}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Next 15 Minutes
+                </button>
+              </div>
               <input
                 type="time"
                 name="startTime"
@@ -2255,8 +3322,10 @@ import path from 'path';
 import { getDay } from 'date-fns';
 
 interface MoveRequest {
-  assetPath: string;
-  fileName: string;
+  images: {
+    assetPath: string;
+    fileName: string;
+  }[];
   targetPath: string;
   sortOptions?: {
     startDate?: string;
@@ -2356,15 +3425,47 @@ export async function POST(request: Request) {
     console.log('Move request received:', body);
     
     const publicDir = path.join(process.cwd(), 'public');
-    const currentPath = path.join(publicDir, 'images', body.fileName);
     const targetDir = path.join(publicDir, body.targetPath);
-    const targetPath = path.join(targetDir, body.fileName);
     
     // Create target directory if it doesn't exist
     await fs.mkdir(targetDir, { recursive: true });
     
-    // Move the file
-    await fs.rename(currentPath, targetPath);
+    // Keep track of successful and failed moves
+    const moveResults: { success: string[]; failed: string[] } = {
+      success: [],
+      failed: []
+    };
+
+    // Move all files
+    for (const image of body.images) {
+      try {
+        const currentPath = path.join(publicDir, 'images', image.fileName);
+        const targetPath = path.join(targetDir, image.fileName);
+        
+        // Check if source file exists
+        await fs.access(currentPath);
+        
+        // Check if target file already exists
+        try {
+          await fs.access(targetPath);
+          moveResults.failed.push(`${image.fileName} (already exists in target directory)`);
+          continue;
+        } catch {
+          // Target doesn't exist, we can proceed
+        }
+        
+        // Perform the move
+        await fs.rename(currentPath, targetPath);
+        moveResults.success.push(image.fileName);
+      } catch (error) {
+        console.error(`Failed to move ${image.fileName}:`, error);
+        moveResults.failed.push(image.fileName);
+      }
+    }
+    
+    if (moveResults.success.length === 0) {
+      throw new Error('No files were successfully moved');
+    }
     
     // Update data.json
     console.log('Updating data.json...');
@@ -2372,34 +3473,45 @@ export async function POST(request: Request) {
     const dataContent = await fs.readFile(dataPath, 'utf-8');
     let imageData: ImageData[] = JSON.parse(dataContent);
     
-    // Find the moved image in the data
-    const movedImageIndex = imageData.findIndex(item => item.assetPath === body.assetPath);
-    
-    if (movedImageIndex !== -1) {
-      // Update the asset path for the moved image
-      const relativePath = path.relative(publicDir, targetPath);
-      imageData[movedImageIndex].assetPath = '/' + relativePath.replace(/\\/g, '/');
-      
-      // Write the updated data back to data.json
-      await fs.writeFile(dataPath, JSON.stringify(imageData, null, 2));
-      
-      // Apply sort options if they exist
-      const sortedData = body.sortOptions ? applySortOptions(imageData, body.sortOptions) : imageData;
-      
-      return NextResponse.json({ 
-        success: true,
-        message: 'Image moved successfully and data.json updated',
-        newPath: targetPath,
-        newData: sortedData
-      });
-    } else {
-      throw new Error('Image not found in data.json');
+    // Update the asset paths for successfully moved images
+    let updatedCount = 0;
+    imageData = imageData.map(item => {
+      const matchingImage = body.images.find(img => img.assetPath === item.assetPath);
+      if (matchingImage && moveResults.success.includes(matchingImage.fileName)) {
+        updatedCount++;
+        const relativePath = path.join(body.targetPath, item.fileName);
+        return {
+          ...item,
+          assetPath: '/' + relativePath.replace(/\\/g, '/')
+        };
+      }
+      return item;
+    });
+
+    if (updatedCount === 0) {
+      throw new Error('Failed to update image data');
     }
+    
+    // Write the updated data back to data.json
+    await fs.writeFile(dataPath, JSON.stringify(imageData, null, 2));
+    
+    // Apply sort options if they exist
+    const sortedData = body.sortOptions ? applySortOptions(imageData, body.sortOptions) : imageData;
+    
+    // Return response with results
+    return NextResponse.json({ 
+      success: true,
+      message: 'Images processed',
+      results: moveResults,
+      newData: sortedData
+    });
+
   } catch (error: any) {
     console.error('Move API Error:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to move image',
+        success: false,
+        error: 'Failed to move images',
         details: error.message
       },
       { status: 500 }
@@ -2409,14 +3521,15 @@ export async function POST(request: Request) {
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer//app/api/images/delete/route.ts
 
-// app/api/images/delete/route.ts
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 
 interface DeleteRequest {
-  assetPath: string;
-  fileName: string;
+  images: {
+    assetPath: string;
+    fileName: string;
+  }[];
 }
 
 export async function POST(request: Request) {
@@ -2424,65 +3537,68 @@ export async function POST(request: Request) {
     const body: DeleteRequest = await request.json();
     console.log('Delete request received:', body);
     
-    // 1. Delete the file from public/images
-    const imagePath = path.join(process.cwd(), 'public', 'images', body.fileName);
-    console.log('Attempting to delete file at:', imagePath);
-    
-    try {
-      const stats = await fs.stat(imagePath);
-      console.log('File exists:', stats.isFile());
-      
-      // Delete the actual image file
-      await fs.unlink(imagePath);
-      console.log('Successfully deleted image file');
-    } catch (error: any) {
-      console.error('Error during file deletion:', {
-        error: error.message,
-        code: error.code,
-        path: imagePath
-      });
-      
-      return NextResponse.json(
-        { 
-          error: 'Image file could not be deleted',
-          details: error.message,
-          path: imagePath
-        },
-        { status: 500 }
-      );
+    const deleteResults: { success: string[]; failed: string[] } = {
+      success: [],
+      failed: []
+    };
+
+    // Process each image
+    for (const image of body.images) {
+      try {
+        const imagePath = path.join(process.cwd(), 'public', 'images', image.fileName);
+        console.log('Attempting to delete file at:', imagePath);
+        
+        // Check if file exists and delete it
+        try {
+          const stats = await fs.stat(imagePath);
+          if (stats.isFile()) {
+            await fs.unlink(imagePath);
+            deleteResults.success.push(image.fileName);
+          } else {
+            deleteResults.failed.push(`${image.fileName} (not a file)`);
+          }
+        } catch (error: any) {
+          console.error(`Error deleting ${image.fileName}:`, error);
+          deleteResults.failed.push(image.fileName);
+        }
+      } catch (error) {
+        console.error(`Error processing ${image.fileName}:`, error);
+        deleteResults.failed.push(image.fileName);
+      }
     }
 
-    // 2. Update data.json
+    // Update data.json
     const dataPath = path.join(process.cwd(), 'public', 'data.json');
-    console.log('Updating data.json at:', dataPath);
+    const dataContent = await fs.readFile(dataPath, 'utf-8');
+    const data = JSON.parse(dataContent);
     
-    try {
-      const dataContent = await fs.readFile(dataPath, 'utf-8');
-      const data = JSON.parse(dataContent);
-      
-      console.log('Current data entries:', data.length);
-      const updatedData = data.filter((item: any) => item.assetPath !== body.assetPath);
-      console.log('Updated data entries:', updatedData.length);
-      
-      await fs.writeFile(dataPath, JSON.stringify(updatedData, null, 2));
-      console.log('Successfully updated data.json');
-      
-      return NextResponse.json({ 
-        success: true,
-        message: 'Image and data entry successfully deleted',
-        deletedFile: imagePath
-      });
-    } catch (error) {
-      console.error('Error updating data.json:', error);
-      return NextResponse.json(
-        { error: 'Failed to update data.json' },
-        { status: 500 }
-      );
-    }
-  } catch (error) {
+    // Filter out deleted images
+    const successfullyDeletedPaths = new Set(
+      body.images
+        .filter(img => deleteResults.success.includes(img.fileName))
+        .map(img => img.assetPath)
+    );
+    
+    const updatedData = data.filter((item: any) => !successfullyDeletedPaths.has(item.assetPath));
+    
+    // Write updated data back to file
+    await fs.writeFile(dataPath, JSON.stringify(updatedData, null, 2));
+    
+    return NextResponse.json({ 
+      success: true,
+      message: 'Images processed',
+      results: deleteResults,
+      remainingImages: updatedData
+    });
+    
+  } catch (error: any) {
     console.error('Delete API Error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { 
+        success: false,
+        error: 'Failed to delete images',
+        details: error.message
+      },
       { status: 500 }
     );
   }
@@ -2650,14 +3766,18 @@ interface SortOptions {
   weeks: string[];
 }
 
-export async function moveImage(
-  assetPath: string, 
-  fileName: string, 
+interface ImageToMove {
+  assetPath: string;
+  fileName: string;
+}
+
+export async function moveImages(
+  images: ImageToMove[],
   targetPath: string,
   sortOptions?: SortOptions
-): Promise<{ success: boolean, data?: any[] }> {
+): Promise<{ success: boolean; data?: any[] }> {
   try {
-    console.log('Sending move request for:', { assetPath, fileName, targetPath, sortOptions });
+    console.log('Sending bulk move request for:', { images, targetPath, sortOptions });
     
     const response = await fetch('/api/images/move', {
       method: 'POST',
@@ -2665,10 +3785,9 @@ export async function moveImage(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
-        assetPath, 
-        fileName, 
+        images,
         targetPath,
-        sortOptions // Include sort options in the request
+        sortOptions
       }),
     });
 
@@ -2676,46 +3795,47 @@ export async function moveImage(
     
     if (!response.ok) {
       console.error('Move request failed:', result);
-      throw new Error(result.error || 'Failed to move image');
+      throw new Error(result.error || 'Failed to move images');
     }
 
-    // Return the filtered data based on current sort options
     return {
       success: true,
       data: result.newData
     };
   } catch (error) {
-    console.error('Error in moveImage service:', error);
+    console.error('Error in moveImages service:', error);
     throw error;
   }
 }
-
-export async function deleteImage(assetPath: string, fileName: string): Promise<boolean> {
+export async function deleteImages(
+  images: { assetPath: string; fileName: string }[]
+): Promise<boolean> {
   try {
-    console.log('Sending delete request for:', { assetPath, fileName });
+    console.log('Sending bulk delete request for:', images);
     
     const response = await fetch('/api/images/delete', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ assetPath, fileName }),
+      body: JSON.stringify({ images }),
     });
 
     const result = await response.json();
     
     if (!response.ok) {
-      console.error('Delete request failed:', result);
-      throw new Error(result.error || 'Failed to delete image');
+      console.error('Bulk delete request failed:', result);
+      throw new Error(result.error || 'Failed to delete images');
     }
 
-    console.log('Delete response:', result);
+    console.log('Bulk delete response:', result);
     return true;
   } catch (error) {
-    console.error('Error in deleteImage service:', error);
+    console.error('Error in deleteImages service:', error);
     throw error;
   }
 }
+
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer//next-env.d.ts
 
@@ -2748,6 +3868,45 @@ const config: Config = {
 };
 export default config;
 
+
+// /Users/adamchenwei/www/custom-sorting-image-viewer//jest.setup.ts
+
+// jest.setup.ts
+import React from 'react';
+import '@testing-library/jest-dom';
+
+// Mock Next.js router
+jest.mock('next/navigation', () => ({
+  useRouter() {
+    return {
+      push: jest.fn(),
+      replace: jest.fn(),
+      prefetch: jest.fn(),
+      back: jest.fn(),
+      forward: jest.fn(),
+    };
+  },
+  usePathname() {
+    return '';
+  },
+  useSearchParams() {
+    return new URLSearchParams();
+  },
+}));
+
+// Mock Next.js Image component
+jest.mock('next/image', () => ({
+  __esModule: true,
+  default: function MockImage(props: React.ImgHTMLAttributes<HTMLImageElement>) {
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    return React.createElement('img', { ...props });
+  },
+}));
+
+// Clean up after each test
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
 // /Users/adamchenwei/www/custom-sorting-image-viewer//scripts/processImages.ts
 
@@ -2870,4 +4029,96 @@ export function processImagesDirectory(dirPath: string, baseDir: string): { item
 
   return { items, summary };
 }
+
+// /Users/adamchenwei/www/custom-sorting-image-viewer//scripts/process-images-cli.ts
+
+// scripts/process-images-cli.ts
+import path from 'path';
+import fs from 'fs';
+import { processImagesDirectory, extractDateTimeFromFileName } from './processImages';
+
+function main() {
+  try {
+    // Get the public directory path
+    const publicDir = path.join(process.cwd(), 'public');
+    const imagesDir = path.join(publicDir, 'images');
+    const dataJsonPath = path.join(publicDir, 'data.json');
+
+    // Ensure the images directory exists
+    if (!fs.existsSync(imagesDir)) {
+      console.error('Images directory does not exist:', imagesDir);
+      console.log('Creating images directory...');
+      fs.mkdirSync(imagesDir, { recursive: true });
+    }
+
+    // Process the images directory
+    console.log('Processing images directory:', imagesDir);
+    const { items, summary } = processImagesDirectory(imagesDir, publicDir);
+
+    // Write the results to data.json
+    fs.writeFileSync(dataJsonPath, JSON.stringify(items, null, 2));
+
+    // Print summary
+    console.log('\nProcessing Summary:');
+    console.log('------------------');
+    console.log('Total images processed:', summary.processedFiles.length);
+    console.log('Successfully processed files:', summary.processedFiles.length);
+    console.log('Unprocessed files:', summary.unprocessedFiles.length);
+    
+    if (summary.unprocessedFiles.length > 0) {
+      console.log('\nUnprocessed files:');
+      summary.unprocessedFiles.forEach(file => console.log(`- ${file}`));
+    }
+
+    console.log('\nData written to:', dataJsonPath);
+
+  } catch (error) {
+    console.error('Error processing images:', error);
+    process.exit(1);
+  }
+}
+
+// Execute the script
+main();
+
+// /Users/adamchenwei/www/custom-sorting-image-viewer//jest.config.ts
+
+import type { Config } from 'jest';
+import nextJest from 'next/jest';
+
+const createJestConfig = nextJest({
+  // Provide the path to your Next.js app to load next.config.js and .env files in your test environment
+  dir: './',
+});
+
+// Add any custom config to be passed to Jest
+const config: Config = {
+  // Add more setup options before each test is run
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  testEnvironment: 'jest-environment-jsdom',
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
+      tsconfig: './tsconfig.json'
+    }]
+  },
+  moduleNameMapper: {
+    // Handle module aliases (if you're using them in your Next.js project)
+    '^@/components/(.*)$': '<rootDir>/app/components/$1',
+    '^@/app/(.*)$': '<rootDir>/app/$1',
+  },
+  coverageProvider: "v8",
+  collectCoverageFrom: [
+    'app/**/*.{js,jsx,ts,tsx}',
+    '!app/**/*.d.ts',
+    '!app/**/types.ts',
+    '!app/**/*.stories.{js,jsx,ts,tsx}',
+    '!app/api/**',
+    '!app/**/layout.tsx',
+    '!app/**/page.tsx',
+  ],
+};
+
+// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
+export default createJestConfig(config);
+
 

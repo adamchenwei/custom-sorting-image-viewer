@@ -68,6 +68,15 @@ const getLastWeekdayOfMonth = (year: number, month: number, weekday: number): Da
   return date;
 };
 
+// Helper function to check if a date is in the week before Christmas
+const isInWeekBeforeChristmas = (date: Date): boolean => {
+  const christmas = new Date(date.getFullYear(), 11, 25); // December 25th
+  const weekBeforeStart = new Date(christmas);
+  weekBeforeStart.setDate(christmas.getDate() - 7);
+  
+  return date >= weekBeforeStart && date < christmas;
+};
+
 const HOLIDAY_CONFIGS: HolidayConfigs = {
   'new-years-day': {
     name: "New Year's Day",
@@ -135,10 +144,22 @@ const HOLIDAY_CONFIGS: HolidayConfigs = {
       return date.getTime() === thanksgiving.getTime();
     }
   },
+  'week-before-christmas': {
+    name: "The Week Before Christmas",
+    check: (date: Date): boolean => {
+      return isInWeekBeforeChristmas(date);
+    }
+  },
   'christmas-day': {
     name: "Christmas Day",
     check: (date: Date): boolean => {
       return date.getMonth() === 11 && date.getDate() === 25;
+    }
+  },
+  'day-after-christmas': {
+    name: "The Day After Christmas",
+    check: (date: Date): boolean => {
+      return date.getMonth() === 11 && date.getDate() === 26;
     }
   }
 };
