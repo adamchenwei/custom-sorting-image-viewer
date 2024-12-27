@@ -5,8 +5,10 @@ import path from 'path';
 import { getDay } from 'date-fns';
 
 interface MoveRequest {
-  assetPath: string;
-  fileName: string;
+  images: {
+    assetPath: string;
+    fileName: string;
+  }[];
   targetPath: string;
   sortOptions?: {
     startDate?: string;
@@ -106,15 +108,47 @@ export async function POST(request: Request) {
     console.log('Move request received:', body);
     
     const publicDir = path.join(process.cwd(), 'public');
-    const currentPath = path.join(publicDir, 'images', body.fileName);
     const targetDir = path.join(publicDir, body.targetPath);
-    const targetPath = path.join(targetDir, body.fileName);
     
     // Create target directory if it doesn't exist
     await fs.mkdir(targetDir, { recursive: true });
     
-    // Move the file
-    await fs.rename(currentPath, targetPath);
+    // Keep track of successful and failed moves
+    const moveResults: { success: string[]; failed: string[] } = {
+      success: [],
+      failed: []
+    };
+
+    // Move all files
+    for (const image of body.images) {
+      try {
+        const currentPath = path.join(publicDir, 'images', image.fileName);
+        const targetPath = path.join(targetDir, image.fileName);
+        
+        // Check if source file exists
+        await fs.access(currentPath);
+        
+        // Check if target file already exists
+        try {
+          await fs.access(targetPath);
+          moveResults.failed.push(`${image.fileName} (already exists in target directory)`);
+          continue;
+        } catch {
+          // Target doesn't exist, we can proceed
+        }
+        
+        // Perform the move
+        await fs.rename(currentPath, targetPath);
+        moveResults.success.push(image.fileName);
+      } catch (error) {
+        console.error(`Failed to move ${image.fileName}:`, error);
+        moveResults.failed.push(image.fileName);
+      }
+    }
+    
+    if (moveResults.success.length === 0) {
+      throw new Error('No files were successfully moved');
+    }
     
     // Update data.json
     console.log('Updating data.json...');
@@ -122,34 +156,45 @@ export async function POST(request: Request) {
     const dataContent = await fs.readFile(dataPath, 'utf-8');
     let imageData: ImageData[] = JSON.parse(dataContent);
     
-    // Find the moved image in the data
-    const movedImageIndex = imageData.findIndex(item => item.assetPath === body.assetPath);
-    
-    if (movedImageIndex !== -1) {
-      // Update the asset path for the moved image
-      const relativePath = path.relative(publicDir, targetPath);
-      imageData[movedImageIndex].assetPath = '/' + relativePath.replace(/\\/g, '/');
-      
-      // Write the updated data back to data.json
-      await fs.writeFile(dataPath, JSON.stringify(imageData, null, 2));
-      
-      // Apply sort options if they exist
-      const sortedData = body.sortOptions ? applySortOptions(imageData, body.sortOptions) : imageData;
-      
-      return NextResponse.json({ 
-        success: true,
-        message: 'Image moved successfully and data.json updated',
-        newPath: targetPath,
-        newData: sortedData
-      });
-    } else {
-      throw new Error('Image not found in data.json');
+    // Update the asset paths for successfully moved images
+    let updatedCount = 0;
+    imageData = imageData.map(item => {
+      const matchingImage = body.images.find(img => img.assetPath === item.assetPath);
+      if (matchingImage && moveResults.success.includes(matchingImage.fileName)) {
+        updatedCount++;
+        const relativePath = path.join(body.targetPath, item.fileName);
+        return {
+          ...item,
+          assetPath: '/' + relativePath.replace(/\\/g, '/')
+        };
+      }
+      return item;
+    });
+
+    if (updatedCount === 0) {
+      throw new Error('Failed to update image data');
     }
+    
+    // Write the updated data back to data.json
+    await fs.writeFile(dataPath, JSON.stringify(imageData, null, 2));
+    
+    // Apply sort options if they exist
+    const sortedData = body.sortOptions ? applySortOptions(imageData, body.sortOptions) : imageData;
+    
+    // Return response with results
+    return NextResponse.json({ 
+      success: true,
+      message: 'Images processed',
+      results: moveResults,
+      newData: sortedData
+    });
+
   } catch (error: any) {
     console.error('Move API Error:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to move image',
+        success: false,
+        error: 'Failed to move images',
         details: error.message
       },
       { status: 500 }

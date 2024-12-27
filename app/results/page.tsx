@@ -1,10 +1,9 @@
-// app/results/page.tsx
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
-import { ArrowRight, X } from "lucide-react";
-import { deleteImage, moveImage } from "../services/imageService";
+import { ArrowRight, X, CheckSquare, Square } from "lucide-react";
+import { deleteImage, moveImages } from "../services/imageService";
 import { MoveModal } from "../components/MoveModal";
 import { SorterModal } from "../components/SorterModal";
 
@@ -30,12 +29,12 @@ interface SortOptions {
 export default function ResultsPage() {
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [showSorter, setShowSorter] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
-  const [imageToMove, setImageToMove] = useState<ImageData | null>(null);
   const [currentSortOptions, setCurrentSortOptions] =
     useState<SortOptions | null>(null);
 
@@ -101,48 +100,73 @@ export default function ResultsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const handleMove = async (image: ImageData, targetPath: string) => {
+  const handleImageSelect = (image: ImageData, event: React.MouseEvent) => {
+    // If shift key is pressed, maintain preview selection
+    if (!event.shiftKey) {
+      setSelectedImage(image);
+      setSelectedIndex(
+        images.findIndex((img) => img.assetPath === image.assetPath)
+      );
+    }
+
+    // Toggle selection for multi-select
+    setSelectedImages((prev) => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(image.assetPath)) {
+        newSelection.delete(image.assetPath);
+      } else {
+        newSelection.add(image.assetPath);
+      }
+      return newSelection;
+    });
+  };
+
+  const handleMove = async (targetPath: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Move the image and get the new data, passing the current sort options
-      const moveResult = await moveImage(
-        image.assetPath,
-        image.fileName,
+      const imagesToMove = Array.from(selectedImages).map((assetPath) => {
+        const image = images.find((img) => img.assetPath === assetPath);
+        return {
+          assetPath,
+          fileName: image!.fileName,
+        };
+      });
+
+      const moveResult = await moveImages(
+        imagesToMove,
         targetPath,
         currentSortOptions || undefined
       );
 
       if (moveResult.success && moveResult.data) {
-        // Update the images state with the new filtered data
         setImages(moveResult.data);
 
         // Update selected image if needed
         if (moveResult.data.length > 0) {
-          const movedImageIndex = moveResult.data.findIndex(
-            (img: ImageData) => img.fileName === image.fileName
+          const firstVisibleSelected = moveResult.data.find((img) =>
+            selectedImages.has(img.assetPath)
           );
-          if (movedImageIndex !== -1) {
-            setSelectedImage(moveResult.data[movedImageIndex]);
-            setSelectedIndex(movedImageIndex);
+          if (firstVisibleSelected) {
+            setSelectedImage(firstVisibleSelected);
+            setSelectedIndex(moveResult.data.indexOf(firstVisibleSelected));
           } else {
-            // If moved image is no longer in view (filtered out), select the first visible image
             setSelectedImage(moveResult.data[0]);
             setSelectedIndex(0);
           }
         } else {
-          // No images left in view
           setSelectedImage(null);
           setSelectedIndex(-1);
         }
       }
 
+      // Clear selections after move
+      setSelectedImages(new Set());
       setShowMoveModal(false);
-      setImageToMove(null);
     } catch (err) {
-      console.error("Error moving image:", err);
-      setError("Failed to move image");
+      console.error("Error moving images:", err);
+      setError("Failed to move images");
     } finally {
       setLoading(false);
     }
@@ -163,6 +187,15 @@ export default function ResultsPage() {
       setImages((prevImages) =>
         prevImages.filter((img) => img.assetPath !== image.assetPath)
       );
+
+      // Remove from selected images if it was selected
+      if (selectedImages.has(image.assetPath)) {
+        setSelectedImages((prev) => {
+          const newSelection = new Set(prev);
+          newSelection.delete(image.assetPath);
+          return newSelection;
+        });
+      }
 
       // If the deleted image was selected, select the next available image
       if (selectedImage?.assetPath === image.assetPath) {
@@ -198,17 +231,26 @@ export default function ResultsPage() {
     }
   };
 
-  // Rest of the component remains the same...
   return (
     <div className="flex h-screen">
       {/* Left side - Image list */}
       <div className="w-1/2 overflow-y-auto p-4">
-        <button
-          onClick={() => setShowSorter(true)}
-          className="mb-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Sort
-        </button>
+        <div className="flex space-x-2 mb-4">
+          <button
+            onClick={() => setShowSorter(true)}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Sort
+          </button>
+          {selectedImages.size > 0 && (
+            <button
+              onClick={() => setShowMoveModal(true)}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              Move Selected ({selectedImages.size})
+            </button>
+          )}
+        </div>
 
         {error && (
           <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
@@ -234,14 +276,20 @@ export default function ResultsPage() {
               key={image.assetPath}
               className={`p-2 cursor-pointer rounded flex items-start group ${
                 selectedImage?.assetPath === image.assetPath
-                  ? "bg-blue-600 text-white"
-                  : "hover:bg-blue-400"
-              }`}
-              onClick={() => {
-                setSelectedImage(image);
-                setSelectedIndex(index);
-              }}
+                  ? "bg-blue-100"
+                  : "hover:bg-gray-100"
+              } ${selectedImages.has(image.assetPath) ? "bg-blue-50" : ""}`}
+              onClick={(e) => handleImageSelect(image, e)}
             >
+              {/* Checkbox */}
+              <div className="flex-shrink-0 mr-2">
+                {selectedImages.has(image.assetPath) ? (
+                  <CheckSquare className="text-blue-500" size={20} />
+                ) : (
+                  <Square className="text-gray-400" size={20} />
+                )}
+              </div>
+
               {/* Thumbnail Container */}
               <div className="flex-shrink-0 mr-3 relative w-16 h-16">
                 <Image
@@ -257,13 +305,7 @@ export default function ResultsPage() {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="break-words truncate">{image.fileName}</div>
-                <div
-                  className={`text-sm ${
-                    selectedImage?.assetPath === image.assetPath
-                      ? "text-blue-100"
-                      : "text-gray-500"
-                  }`}
-                >
+                <div className="text-sm text-gray-500">
                   {format(
                     new Date(
                       image.yyyy,
@@ -281,11 +323,7 @@ export default function ResultsPage() {
               {/* Action Buttons */}
               <div className="flex items-center ml-2 flex-shrink-0">
                 <button
-                  className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
-                    selectedImage?.assetPath === image.assetPath
-                      ? "hover:bg-blue-700 text-white"
-                      : "hover:bg-blue-500 text-gray-600 hover:text-white"
-                  }`}
+                  className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDelete(image, index);
@@ -295,14 +333,10 @@ export default function ResultsPage() {
                   <X size={16} />
                 </button>
                 <button
-                  className={`p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
-                    selectedImage?.assetPath === image.assetPath
-                      ? "hover:bg-blue-700 text-white"
-                      : "hover:bg-blue-500 text-gray-600 hover:text-white"
-                  }`}
+                  className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setImageToMove(image);
+                    setSelectedImages(new Set([image.assetPath]));
                     setShowMoveModal(true);
                   }}
                   aria-label="Move image"
@@ -333,14 +367,15 @@ export default function ResultsPage() {
       </div>
 
       {/* Modals */}
-      {showMoveModal && imageToMove && (
+      {showMoveModal && selectedImages.size > 0 && (
         <MoveModal
           isOpen={showMoveModal}
           onClose={() => {
             setShowMoveModal(false);
-            setImageToMove(null);
+            setSelectedImages(new Set());
           }}
-          onSubmit={(targetPath) => handleMove(imageToMove, targetPath)}
+          onSubmit={handleMove}
+          selectionCount={selectedImages.size}
         />
       )}
 

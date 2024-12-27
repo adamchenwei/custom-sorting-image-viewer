@@ -7,14 +7,18 @@ interface SortOptions {
   weeks: string[];
 }
 
-export async function moveImage(
-  assetPath: string, 
-  fileName: string, 
+interface ImageToMove {
+  assetPath: string;
+  fileName: string;
+}
+
+export async function moveImages(
+  images: ImageToMove[],
   targetPath: string,
   sortOptions?: SortOptions
-): Promise<{ success: boolean, data?: any[] }> {
+): Promise<{ success: boolean; data?: any[] }> {
   try {
-    console.log('Sending move request for:', { assetPath, fileName, targetPath, sortOptions });
+    console.log('Sending bulk move request for:', { images, targetPath, sortOptions });
     
     const response = await fetch('/api/images/move', {
       method: 'POST',
@@ -22,10 +26,9 @@ export async function moveImage(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
-        assetPath, 
-        fileName, 
+        images,
         targetPath,
-        sortOptions // Include sort options in the request
+        sortOptions
       }),
     });
 
@@ -33,16 +36,15 @@ export async function moveImage(
     
     if (!response.ok) {
       console.error('Move request failed:', result);
-      throw new Error(result.error || 'Failed to move image');
+      throw new Error(result.error || 'Failed to move images');
     }
 
-    // Return the filtered data based on current sort options
     return {
       success: true,
       data: result.newData
     };
   } catch (error) {
-    console.error('Error in moveImage service:', error);
+    console.error('Error in moveImages service:', error);
     throw error;
   }
 }
