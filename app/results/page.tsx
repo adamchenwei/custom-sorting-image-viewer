@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
 import { ArrowRight, X, CheckSquare, Square } from "lucide-react";
-import { deleteImage, moveImages } from "../services/imageService";
+import { moveImages, deleteImages } from "../services/imageService";
 import { MoveModal } from "../components/MoveModal";
 import { SorterModal } from "../components/SorterModal";
 
@@ -181,7 +181,9 @@ export default function ResultsPage() {
       setLoading(true);
       console.log("Deleting image:", image);
 
-      await deleteImage(image.assetPath, image.fileName);
+      await deleteImages([
+        { assetPath: image.assetPath, fileName: image.fileName },
+      ]);
 
       // Update local state
       setImages((prevImages) =>

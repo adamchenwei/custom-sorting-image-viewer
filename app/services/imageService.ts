@@ -48,7 +48,6 @@ export async function moveImages(
     throw error;
   }
 }
-
 export async function deleteImages(
   images: { assetPath: string; fileName: string }[]
 ): Promise<boolean> {
