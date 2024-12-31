@@ -139,7 +139,7 @@ const HOLIDAY_CONFIGS: HolidayConfigs = {
     },
     priority: 2
   },
-  'time-saving-applied': {
+  'daylight-saving-applied-1h-back': {
     name: "Daylight Saving Time Active",
     check: (date: Date): boolean => {
       return isDuringDST(date);

@@ -381,7 +381,7 @@ export default function ResultsPage() {
                 />
               </div>
 
-              {/* Content */}
+              {/* Content Container */}
               <div className="flex-1 min-w-0">
                 <div className="break-words truncate">{image.fileName}</div>
                 <div className="text-sm text-gray-500">
@@ -402,11 +402,21 @@ export default function ResultsPage() {
                     2,
                     "0"
                   )}-${String(image.dd).padStart(2, "0")}`;
-                  const holiday = isUSHoliday(dateStr);
-                  if (holiday.id !== "error" && holiday.id !== "not-holiday") {
+                  const holidays = isUSHoliday(dateStr);
+                  if (
+                    holidays[0].id !== "error" &&
+                    holidays[0].id !== "not-holiday"
+                  ) {
                     return (
-                      <div className="mt-1 inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-900">
-                        {holiday.id}
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {holidays.map((holiday) => (
+                          <span
+                            key={holiday.id}
+                            className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-900"
+                          >
+                            {holiday.id}
+                          </span>
+                        ))}
                       </div>
                     );
                   }

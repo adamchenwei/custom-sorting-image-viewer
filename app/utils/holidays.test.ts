@@ -55,7 +55,7 @@ describe('isUSHoliday', () => {
         name: 'Juneteenth'
       });
       expect(result[1]).toEqual({
-        id: 'time-saving-applied',
+        id: 'daylight-saving-applied-1h-back',
         name: 'Daylight Saving Time Active'
       });
     });
@@ -68,7 +68,7 @@ describe('isUSHoliday', () => {
         name: 'Independence Day'
       });
       expect(result[1]).toEqual({
-        id: 'time-saving-applied',
+        id: 'daylight-saving-applied-1h-back',
         name: 'Daylight Saving Time Active'
       });
     });
@@ -115,7 +115,7 @@ describe('isUSHoliday', () => {
         name: 'Memorial Day'
       });
       expect(result[1]).toEqual({
-        id: 'time-saving-applied',
+        id: 'daylight-saving-applied-1h-back',
         name: 'Daylight Saving Time Active'
       });
     });
@@ -128,7 +128,7 @@ describe('isUSHoliday', () => {
         name: 'Labor Day'
       });
       expect(result[1]).toEqual({
-        id: 'time-saving-applied',
+        id: 'daylight-saving-applied-1h-back',
         name: 'Daylight Saving Time Active'
       });
     });
@@ -141,7 +141,7 @@ describe('isUSHoliday', () => {
         name: 'Columbus Day'
       });
       expect(result[1]).toEqual({
-        id: 'time-saving-applied',
+        id: 'daylight-saving-applied-1h-back',
         name: 'Daylight Saving Time Active'
       });
     });
@@ -157,11 +157,11 @@ describe('isUSHoliday', () => {
   describe('non-holidays', () => {
     it('should return not-holiday for non-holiday dates', () => {
       expect(isUSHoliday('2024-03-15')).toEqual([{
-        id: 'time-saving-applied',
+        id: 'daylight-saving-applied-1h-back',
         name: 'Daylight Saving Time Active'
       }]);
       expect(isUSHoliday('2024-08-01')).toEqual([{
-        id: 'time-saving-applied',
+        id: 'daylight-saving-applied-1h-back',
         name: 'Daylight Saving Time Active'
       }]);
       expect(isUSHoliday('2024-12-27')).toEqual([{
@@ -172,11 +172,11 @@ describe('isUSHoliday', () => {
 
     it('should return not-holiday for weekend dates that are not holidays', () => {
       expect(isUSHoliday('2024-03-16')).toEqual([{
-        id: 'time-saving-applied',
+        id: 'daylight-saving-applied-1h-back',
         name: 'Daylight Saving Time Active'
       }]);
       expect(isUSHoliday('2024-03-17')).toEqual([{
-        id: 'time-saving-applied',
+        id: 'daylight-saving-applied-1h-back',
         name: 'Daylight Saving Time Active'
       }]);
     });
@@ -260,7 +260,7 @@ describe('isUSHoliday', () => {
       const julyFourth = isUSHoliday('2024-07-04');
       expect(julyFourth).toHaveLength(2);
       expect(julyFourth[0].id).toBe('independence-day'); // Higher priority
-      expect(julyFourth[1].id).toBe('time-saving-applied'); // Lower priority
+      expect(julyFourth[1].id).toBe('daylight-saving-applied-1h-back'); // Lower priority
 
       // New Year's Day and three days after
       const newYear = isUSHoliday('2024-01-01');
