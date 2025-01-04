@@ -35,9 +35,19 @@ export function extractDateTimeFromFileName(fileName: string): ImageData | null 
     match = fileName.match(/Screenshot_(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})(\d{2})_(.+)\.jpg/);
   }
 
-  // Format 3: 20240921_135601295.jpeg (YYYYMMDD_HHMMSSXXX)
+  // Format 3: Screenshot_2024-12-24_174935.jpg (YYYY-MM-DD_HHMMSS)
+  if (!match) {
+    match = fileName.match(/Screenshot_(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})(\d{2})\.jpg/);
+  }
+
+  // Format 4: 20240921_135601295.jpeg (YYYYMMDD_HHMMSSXXX)
   if (!match) {
     match = fileName.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\d{3}\.(jpeg|jpg)$/);
+  }
+
+  // Format 5: Screenshot_20240318-082104_Uber Driver.jpg (YYYYMMDD-HHMMSS_description)
+  if (!match) {
+    match = fileName.match(/Screenshot_(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})_(.+)\.(jpg|jpeg)/);
   }
 
   if (match) {
@@ -65,6 +75,7 @@ export function extractDateTimeFromFileName(fileName: string): ImageData | null 
 
   return null;
 }
+
 
 export function processImagesDirectory(dirPath: string, baseDir: string): { items: ImageData[], summary: ProcessingSummary } {
   const items: ImageData[] = [];

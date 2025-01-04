@@ -88,10 +88,15 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
     const now = new Date();
     const later = addMinutes(now, 15);
 
+    // Get current day name
+    const currentDay = DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1];
+
     setOptions((prev) => ({
       ...prev,
       startTime: format(now, "HH:mm"),
       endTime: format(later, "HH:mm"),
+      endDate: format(now, "yyyy-MM-dd"), // Set end date to today
+      weeks: [currentDay], // Set to current day of week
     }));
   };
 
