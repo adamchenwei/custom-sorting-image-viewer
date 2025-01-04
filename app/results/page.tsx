@@ -308,8 +308,8 @@ export default function ResultsPage() {
                 className="mix-blend-multiply"
                 style={{
                   objectFit: "contain",
-                  opacity: (1 - index * 0.3).toString(),
-                  filter: `brightness(${1 + index * 0.3})`, // Compensate for opacity darkening
+                  opacity: Math.max(0.7 - index * 0.15, 0.1).toString(),
+                  filter: `brightness(${1.2 + index * 0.1})`, // Slightly brighten to compensate
                 }}
                 priority={index === 0}
               />
