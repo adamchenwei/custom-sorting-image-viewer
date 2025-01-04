@@ -370,6 +370,18 @@ export default function ResultsPage() {
               >
                 Delete Selected ({selectedImages.size})
               </button>
+              <button
+                onClick={() => {
+                  setSelectedImages(new Set());
+                  if (isOverlapMode) {
+                    setSelectedImage(null);
+                    setSelectedIndex(-1);
+                  }
+                }}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Clear Selection
+              </button>
             </>
           )}
         </div>
