@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { format, addMinutes } from "date-fns";
+import { format, addMinutes, addHours } from "date-fns";
 
 interface SortOptions {
   startDate: string;
@@ -87,16 +87,28 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
   const handleNext15Minutes = () => {
     const now = new Date();
     const later = addMinutes(now, 15);
-
-    // Get current day name
     const currentDay = DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1];
 
     setOptions((prev) => ({
       ...prev,
       startTime: format(now, "HH:mm"),
       endTime: format(later, "HH:mm"),
-      endDate: format(now, "yyyy-MM-dd"), // Set end date to today
-      weeks: [currentDay], // Set to current day of week
+      endDate: format(now, "yyyy-MM-dd"),
+      weeks: [currentDay],
+    }));
+  };
+
+  const handleNextHour = () => {
+    const now = new Date();
+    const later = addHours(now, 1);
+    const currentDay = DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1];
+
+    setOptions((prev) => ({
+      ...prev,
+      startTime: format(now, "HH:mm"),
+      endTime: format(later, "HH:mm"),
+      endDate: format(now, "yyyy-MM-dd"),
+      weeks: [currentDay],
     }));
   };
 
@@ -157,13 +169,22 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
                 <label className="block text-sm font-medium text-gray-700">
                   Start Time
                 </label>
-                <button
-                  type="button"
-                  onClick={handleNext15Minutes}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Next 15 Minutes
-                </button>
+                <div className="space-x-2">
+                  <button
+                    type="button"
+                    onClick={handleNext15Minutes}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Next 15 Min
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextHour}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Next 1 Hour
+                  </button>
+                </div>
               </div>
               <input
                 type="time"

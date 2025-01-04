@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
-import { ArrowRight, X, CheckSquare, Square } from "lucide-react";
+import { ArrowRight, X, CheckSquare, Square, Layers } from "lucide-react";
 import { moveImages, deleteImages } from "../services/imageService";
 import { MoveModal } from "../components/MoveModal";
 import { SorterModal } from "../components/SorterModal";
@@ -38,6 +38,7 @@ export default function ResultsPage() {
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [currentSortOptions, setCurrentSortOptions] =
     useState<SortOptions | null>(null);
+  const [isOverlapMode, setIsOverlapMode] = useState(false);
 
   const loadImagesWithSort = async (sortOptions: SortOptions | null) => {
     try {
@@ -106,7 +107,6 @@ export default function ResultsPage() {
     event: React.MouseEvent,
     isCheckboxClick: boolean
   ) => {
-    // If clicking the checkbox area, only toggle selection
     if (isCheckboxClick) {
       setSelectedImages((prev) => {
         const newSelection = new Set(prev);
@@ -120,12 +120,13 @@ export default function ResultsPage() {
       return;
     }
 
-    // For clicks outside checkbox area, update preview and clear multi-select
     setSelectedImage(image);
     setSelectedIndex(
       images.findIndex((img) => img.assetPath === image.assetPath)
     );
-    setSelectedImages(new Set());
+    if (!isOverlapMode) {
+      setSelectedImages(new Set());
+    }
   };
 
   const handleMove = async (targetPath: string) => {
@@ -150,7 +151,6 @@ export default function ResultsPage() {
       if (moveResult.success && moveResult.data) {
         setImages(moveResult.data);
 
-        // Update selected image if needed
         if (moveResult.data.length > 0) {
           const firstVisibleSelected = moveResult.data.find((img) =>
             selectedImages.has(img.assetPath)
@@ -168,7 +168,6 @@ export default function ResultsPage() {
         }
       }
 
-      // Clear selections after move
       setSelectedImages(new Set());
       setShowMoveModal(false);
     } catch (err) {
@@ -192,12 +191,10 @@ export default function ResultsPage() {
         { assetPath: image.assetPath, fileName: image.fileName },
       ]);
 
-      // Update local state
       setImages((prevImages) =>
         prevImages.filter((img) => img.assetPath !== image.assetPath)
       );
 
-      // Remove from selected images if it was selected
       if (selectedImages.has(image.assetPath)) {
         setSelectedImages((prev) => {
           const newSelection = new Set(prev);
@@ -206,7 +203,6 @@ export default function ResultsPage() {
         });
       }
 
-      // If the deleted image was selected, select the next available image
       if (selectedImage?.assetPath === image.assetPath) {
         const nextIndex = Math.min(index, images.length - 2);
         if (nextIndex >= 0) {
@@ -248,12 +244,10 @@ export default function ResultsPage() {
 
       await deleteImages(imagesToDelete);
 
-      // Update local state
       setImages((prevImages) =>
         prevImages.filter((img) => !selectedImages.has(img.assetPath))
       );
 
-      // If any of the deleted images was selected, select the first remaining image
       if (selectedImage && selectedImages.has(selectedImage.assetPath)) {
         const remainingImages = images.filter(
           (img) => !selectedImages.has(img.assetPath)
@@ -267,7 +261,6 @@ export default function ResultsPage() {
         }
       }
 
-      // Clear selections
       setSelectedImages(new Set());
     } catch (err) {
       console.error("Error deleting images:", err);
@@ -292,6 +285,51 @@ export default function ResultsPage() {
     }
   };
 
+  const renderImageViewer = () => {
+    if (isOverlapMode && selectedImages.size > 0) {
+      const selectedImagesList = Array.from(selectedImages)
+        .map((assetPath) => images.find((img) => img.assetPath === assetPath))
+        .filter((img): img is ImageData => img !== undefined);
+
+      return (
+        <div className="relative w-full h-full">
+          {selectedImagesList.map((image, index) => (
+            <div
+              key={image.assetPath}
+              className="absolute inset-0"
+              style={{
+                opacity: 1 - index * 0.3,
+                zIndex: selectedImagesList.length - index,
+              }}
+            >
+              <Image
+                src={image.assetPath}
+                alt={image.fileName}
+                fill
+                style={{ objectFit: "contain" }}
+                priority={index === 0}
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return selectedImage ? (
+      <Image
+        src={selectedImage.assetPath}
+        alt={selectedImage.fileName}
+        fill
+        style={{ objectFit: "contain" }}
+        priority
+      />
+    ) : (
+      <div className="flex items-center justify-center h-full text-gray-500">
+        No image selected
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-screen">
       {/* Left side - Image list */}
@@ -302,6 +340,17 @@ export default function ResultsPage() {
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Sort
+          </button>
+          <button
+            onClick={() => setIsOverlapMode(!isOverlapMode)}
+            className={`px-4 py-2 rounded flex items-center gap-2 ${
+              isOverlapMode
+                ? "bg-indigo-500 text-white hover:bg-indigo-600"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            <Layers size={16} />
+            {isOverlapMode ? "Single" : "Overlap"}
           </button>
           {selectedImages.size > 0 && (
             <>
@@ -354,7 +403,6 @@ export default function ResultsPage() {
               }`}
               onClick={(e) => handleImageSelect(image, e, false)}
             >
-              {/* Checkbox */}
               <div
                 className="flex-shrink-0 mr-2"
                 onClick={(e) => {
@@ -369,7 +417,6 @@ export default function ResultsPage() {
                 )}
               </div>
 
-              {/* Thumbnail Container */}
               <div className="flex-shrink-0 mr-3 relative w-16 h-16">
                 <Image
                   src={image.assetPath}
@@ -381,7 +428,6 @@ export default function ResultsPage() {
                 />
               </div>
 
-              {/* Content Container */}
               <div className="flex-1 min-w-0">
                 <div className="break-words truncate">{image.fileName}</div>
                 <div className="text-sm text-gray-500">
@@ -424,7 +470,6 @@ export default function ResultsPage() {
                 })()}
               </div>
 
-              {/* Action Buttons */}
               <div className="flex items-center ml-2 flex-shrink-0">
                 <button
                   className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
@@ -454,21 +499,7 @@ export default function ResultsPage() {
       </div>
 
       {/* Right side - Image preview */}
-      <div className="w-1/2 h-full relative">
-        {selectedImage ? (
-          <Image
-            src={selectedImage.assetPath}
-            alt={selectedImage.fileName}
-            fill
-            style={{ objectFit: "contain" }}
-            priority
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            No image selected
-          </div>
-        )}
-      </div>
+      <div className="w-1/2 h-full relative">{renderImageViewer()}</div>
 
       {/* Modals */}
       {showMoveModal && selectedImages.size > 0 && (
