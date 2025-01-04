@@ -296,9 +296,8 @@ export default function ResultsPage() {
           {selectedImagesList.map((image, index) => (
             <div
               key={image.assetPath}
-              className="absolute inset-0"
+              className="absolute inset-0 mix-blend-normal"
               style={{
-                opacity: 1 - index * 0.3,
                 zIndex: selectedImagesList.length - index,
               }}
             >
@@ -306,7 +305,12 @@ export default function ResultsPage() {
                 src={image.assetPath}
                 alt={image.fileName}
                 fill
-                style={{ objectFit: "contain" }}
+                className="mix-blend-multiply"
+                style={{
+                  objectFit: "contain",
+                  opacity: (1 - index * 0.3).toString(),
+                  filter: `brightness(${1 + index * 0.3})`, // Compensate for opacity darkening
+                }}
                 priority={index === 0}
               />
             </div>
