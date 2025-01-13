@@ -337,180 +337,186 @@ export default function ResultsPage() {
   return (
     <div className="flex h-screen">
       {/* Left side - Image list */}
-      <div className="w-1/2 overflow-y-auto p-4">
-        <div className="flex space-x-2 mb-4">
-          <button
-            onClick={() => setShowSorter(true)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Sort
-          </button>
-          <button
-            onClick={() => setIsOverlapMode(!isOverlapMode)}
-            className={`px-4 py-2 rounded flex items-center gap-2 ${
-              isOverlapMode
-                ? "bg-indigo-500 text-white hover:bg-indigo-600"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            <Layers size={16} />
-            {isOverlapMode ? "Single" : "Overlap"}
-          </button>
-          {selectedImages.size > 0 && (
-            <>
-              <button
-                onClick={() => setShowMoveModal(true)}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-              >
-                Move Selected ({selectedImages.size})
-              </button>
-              <button
-                onClick={handleBulkDelete}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                Delete Selected ({selectedImages.size})
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedImages(new Set());
-                  if (isOverlapMode) {
-                    setSelectedImage(null);
-                    setSelectedIndex(-1);
-                  }
-                }}
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-              >
-                Clear Selection
-              </button>
-            </>
+      <div className="w-1/2 flex flex-col h-full">
+        {/* Sticky menu section */}
+        <div className="sticky top-0 bg-white z-10 p-4 border-b">
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowSorter(true)}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Sort
+            </button>
+            <button
+              onClick={() => setIsOverlapMode(!isOverlapMode)}
+              className={`px-4 py-2 rounded flex items-center gap-2 ${
+                isOverlapMode
+                  ? "bg-indigo-500 text-white hover:bg-indigo-600"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              <Layers size={16} />
+              {isOverlapMode ? "Single" : "Overlap"}
+            </button>
+            {selectedImages.size > 0 && (
+              <>
+                <button
+                  onClick={() => setShowMoveModal(true)}
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                >
+                  Move Selected ({selectedImages.size})
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                >
+                  Delete Selected ({selectedImages.size})
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedImages(new Set());
+                    if (isOverlapMode) {
+                      setSelectedImage(null);
+                      setSelectedIndex(-1);
+                    }
+                  }}
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                >
+                  Clear Selection
+                </button>
+              </>
+            )}
+          </div>
+
+          {error && (
+            <div className="mt-4 p-2 bg-red-100 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
+          {loading && (
+            <div className="mt-4 p-2 bg-blue-100 text-blue-700 rounded">
+              Loading...
+            </div>
           )}
         </div>
 
-        {error && (
-          <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
-            {error}
-          </div>
-        )}
+        {/* Scrollable content section */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-2">
+            {images.length === 0 && !loading && (
+              <div className="p-2 text-gray-500">
+                No images found matching the criteria
+              </div>
+            )}
 
-        {loading && (
-          <div className="mb-4 p-2 bg-blue-100 text-blue-700 rounded">
-            Loading...
-          </div>
-        )}
-
-        <div className="space-y-2">
-          {images.length === 0 && !loading && (
-            <div className="p-2 text-gray-500">
-              No images found matching the criteria
-            </div>
-          )}
-
-          {images.map((image, index) => (
-            <div
-              key={image.assetPath}
-              className={`p-2 cursor-pointer rounded flex items-start group ${
-                selectedImage?.assetPath === image.assetPath
-                  ? "bg-blue-100 text-gray-500"
-                  : "hover:bg-gray-100 text-black"
-              } ${
-                selectedImages.has(image.assetPath)
-                  ? "bg-blue-50 text-black"
-                  : ""
-              }`}
-              onClick={(e) => handleImageSelect(image, e, false)}
-            >
+            {images.map((image, index) => (
               <div
-                className="flex-shrink-0 mr-2"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleImageSelect(image, e, true);
-                }}
+                key={image.assetPath}
+                className={`p-2 cursor-pointer rounded flex items-start group ${
+                  selectedImage?.assetPath === image.assetPath
+                    ? "bg-blue-100 text-gray-500"
+                    : "hover:bg-gray-100 text-black"
+                } ${
+                  selectedImages.has(image.assetPath)
+                    ? "bg-blue-50 text-black"
+                    : ""
+                }`}
+                onClick={(e) => handleImageSelect(image, e, false)}
               >
-                {selectedImages.has(image.assetPath) ? (
-                  <CheckSquare className="text-blue-500" size={20} />
-                ) : (
-                  <Square className="text-gray-400" size={20} />
-                )}
-              </div>
-
-              <div className="flex-shrink-0 mr-3 relative w-16 h-16">
-                <Image
-                  src={image.assetPath}
-                  alt={image.fileName}
-                  fill
-                  sizes="64px"
-                  className="rounded object-cover"
-                  priority={index < 10}
-                />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="break-words truncate">{image.fileName}</div>
-                <div className="text-sm text-gray-500">
-                  {format(
-                    new Date(
-                      image.yyyy,
-                      image.mm - 1,
-                      image.dd,
-                      image.hh,
-                      image.minute,
-                      image.ss
-                    ),
-                    "PPpp"
+                <div
+                  className="flex-shrink-0 mr-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleImageSelect(image, e, true);
+                  }}
+                >
+                  {selectedImages.has(image.assetPath) ? (
+                    <CheckSquare className="text-blue-500" size={20} />
+                  ) : (
+                    <Square className="text-gray-400" size={20} />
                   )}
                 </div>
-                {(() => {
-                  const dateStr = `${image.yyyy}-${String(image.mm).padStart(
-                    2,
-                    "0"
-                  )}-${String(image.dd).padStart(2, "0")}`;
-                  const holidays = isUSHoliday(dateStr);
-                  if (
-                    holidays[0].id !== "error" &&
-                    holidays[0].id !== "not-holiday"
-                  ) {
-                    return (
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {holidays.map((holiday) => (
-                          <span
-                            key={holiday.id}
-                            className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-900"
-                          >
-                            {holiday.id}
-                          </span>
-                        ))}
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
 
-              <div className="flex items-center ml-2 flex-shrink-0">
-                <button
-                  className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(image, index);
-                  }}
-                  aria-label="Delete image"
-                >
-                  <X size={16} />
-                </button>
-                <button
-                  className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedImages(new Set([image.assetPath]));
-                    setShowMoveModal(true);
-                  }}
-                  aria-label="Move image"
-                >
-                  <ArrowRight size={16} />
-                </button>
+                <div className="flex-shrink-0 mr-3 relative w-16 h-16">
+                  <Image
+                    src={image.assetPath}
+                    alt={image.fileName}
+                    fill
+                    sizes="64px"
+                    className="rounded object-cover"
+                    priority={index < 10}
+                  />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="break-words truncate">{image.fileName}</div>
+                  <div className="text-sm text-gray-500">
+                    {format(
+                      new Date(
+                        image.yyyy,
+                        image.mm - 1,
+                        image.dd,
+                        image.hh,
+                        image.minute,
+                        image.ss
+                      ),
+                      "PPpp"
+                    )}
+                  </div>
+                  {(() => {
+                    const dateStr = `${image.yyyy}-${String(image.mm).padStart(
+                      2,
+                      "0"
+                    )}-${String(image.dd).padStart(2, "0")}`;
+                    const holidays = isUSHoliday(dateStr);
+                    if (
+                      holidays[0].id !== "error" &&
+                      holidays[0].id !== "not-holiday"
+                    ) {
+                      return (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {holidays.map((holiday) => (
+                            <span
+                              key={holiday.id}
+                              className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-900"
+                            >
+                              {holiday.id}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+
+                <div className="flex items-center ml-2 flex-shrink-0">
+                  <button
+                    className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(image, index);
+                    }}
+                    aria-label="Delete image"
+                  >
+                    <X size={16} />
+                  </button>
+                  <button
+                    className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImages(new Set([image.assetPath]));
+                      setShowMoveModal(true);
+                    }}
+                    aria-label="Move image"
+                  >
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
