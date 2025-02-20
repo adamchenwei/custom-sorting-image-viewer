@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Folder } from "lucide-react";
 
 const Button = ({
@@ -72,6 +72,60 @@ const DeleteImagesPage = () => {
   const [matchedFiles, setMatchedFiles] = useState([]);
   const [processedFiles, setProcessedFiles] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
+  const [pollId, setPollId] = useState(null);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollId) {
+        clearTimeout(pollId);
+      }
+    };
+  }, [pollId]);
+
+  const stopPolling = useCallback(() => {
+    if (pollId) {
+      clearTimeout(pollId);
+      setPollId(null);
+    }
+    setIsDeleting(false);
+  }, [pollId]);
+
+  const pollProgress = useCallback(async () => {
+    try {
+      const progressResponse = await fetch("/api/deletion-progress");
+      const progressData = await progressResponse.json();
+
+      if (progressData.error) {
+        setError(progressData.error);
+        stopPolling();
+        return;
+      }
+
+      setProgress(progressData.progress);
+      setStatus(progressData.status);
+      setMatchedFiles(progressData.matchedFiles || []);
+      setProcessedFiles(progressData.processedFiles);
+      setTotalFiles(progressData.totalFiles);
+
+      // Check for completion
+      if (
+        progressData.isCompleted ||
+        progressData.status === "completed" ||
+        progressData.progress === 100
+      ) {
+        console.log("Deletion completed");
+        stopPolling();
+      } else {
+        // Continue polling
+        const newPollId = setTimeout(pollProgress, 1000);
+        setPollId(newPollId);
+      }
+    } catch (err) {
+      setError("Failed to fetch progress");
+      stopPolling();
+    }
+  }, [stopPolling]);
 
   const handleDelete = async () => {
     if (!percentage || !folder) return;
@@ -101,42 +155,21 @@ const DeleteImagesPage = () => {
         throw new Error(data.message || "Failed to start deletion process");
       }
 
-      const pollProgress = async () => {
-        try {
-          const progressResponse = await fetch("/api/deletion-progress");
-          const progressData = await progressResponse.json();
-
-          if (progressData.error) {
-            setError(progressData.error);
-            setIsDeleting(false);
-            setStatus("completed");
-            return;
-          }
-
-          setProgress(progressData.progress);
-          setStatus(progressData.status);
-          setMatchedFiles(progressData.matchedFiles);
-          setProcessedFiles(progressData.processedFiles);
-          setTotalFiles(progressData.totalFiles);
-
-          if (progressData.status !== "completed") {
-            setTimeout(pollProgress, 1000);
-          } else {
-            setIsDeleting(false);
-          }
-        } catch (err) {
-          setError("Failed to fetch progress");
-          setIsDeleting(false);
-          setStatus("completed");
-        }
-      };
-
+      // Start polling
       pollProgress();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
-      setIsDeleting(false);
-      setStatus("completed");
+      stopPolling();
     }
+  };
+
+  const getStatusMessage = () => {
+    if (status === "completed") {
+      return matchedFiles.length > 0
+        ? `Completed: Deleted ${matchedFiles.length} files`
+        : "Completed: No files matched the criteria";
+    }
+    return `Processing: ${processedFiles} of ${totalFiles} files`;
   };
 
   return (
@@ -190,20 +223,16 @@ const DeleteImagesPage = () => {
 
             {error && <Alert type="error">{error}</Alert>}
 
-            {status === "processing" && (
-              <Alert type="info">
-                Processing files: {processedFiles} of {totalFiles}
+            {(isDeleting ||
+              status === "processing" ||
+              status === "completed") && (
+              <Alert type={status === "completed" ? "success" : "info"}>
+                {getStatusMessage()}
                 {matchedFiles.length > 0 && (
-                  <div className="mt-2">
-                    Matched files: {matchedFiles.join(", ")}
+                  <div className="mt-2 text-sm">
+                    Files: {matchedFiles.join(", ")}
                   </div>
                 )}
-              </Alert>
-            )}
-
-            {status === "completed" && matchedFiles.length > 0 && (
-              <Alert type="success">
-                Deletion completed. Deleted files: {matchedFiles.join(", ")}
               </Alert>
             )}
 
