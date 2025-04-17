@@ -86,6 +86,8 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
 
   const handleNext15Minutes = () => {
     const now = new Date();
+    const threeYearsAgo = new Date(now);
+    threeYearsAgo.setFullYear(now.getFullYear() - 3);
     const later = addMinutes(now, 15);
     const currentDay = DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1];
 
@@ -93,6 +95,7 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
       ...prev,
       startTime: format(now, "HH:mm"),
       endTime: format(later, "HH:mm"),
+      startDate: format(threeYearsAgo, "yyyy-MM-dd"),
       endDate: format(now, "yyyy-MM-dd"),
       weeks: [currentDay],
     }));
@@ -100,6 +103,8 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
 
   const handleNextHour = () => {
     const now = new Date();
+    const threeYearsAgo = new Date(now);
+    threeYearsAgo.setFullYear(now.getFullYear() - 3);
     const later = addHours(now, 1);
     const currentDay = DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1];
 
@@ -107,6 +112,7 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
       ...prev,
       startTime: format(now, "HH:mm"),
       endTime: format(later, "HH:mm"),
+      startDate: format(threeYearsAgo, "yyyy-MM-dd"),
       endDate: format(now, "yyyy-MM-dd"),
       weeks: [currentDay],
     }));
