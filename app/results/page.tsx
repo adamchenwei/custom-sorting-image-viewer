@@ -461,7 +461,7 @@ export default function ResultsPage() {
                         image.minute,
                         image.ss
                       ),
-                      "PPpp"
+                      "EEE PPpp"
                     )}
                   </div>
                   {(() => {
