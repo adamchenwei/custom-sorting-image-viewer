@@ -100,7 +100,7 @@ async function analyzeRedPercentage(buffer: Buffer): Promise<number> {
 async function handleDeletion(maxPercentage: number, folderPath: string) {
   try {
     console.log('Starting deletion process for folder:', folderPath);
-    console.log('Maximum red percentage threshold:', maxPercentage);
+    console.log(' red percentage threshold:', maxPercentage);
 
     // Convert relative path to absolute path if needed
     const absolutePath = folderPath.startsWith('/')

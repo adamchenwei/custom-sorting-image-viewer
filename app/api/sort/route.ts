@@ -58,15 +58,15 @@ export async function POST(request: Request) {
     if (options.startDate || options.endDate) {
       filteredData = filteredData.filter(item => {
         const itemDateString = `${item.yyyy}-${String(item.mm).padStart(2, '0')}-${String(item.dd).padStart(2, '0')}`;
-        
+
         if (options.startDate && itemDateString < options.startDate) {
           return false;
         }
-        
+
         if (options.endDate && itemDateString > options.endDate) {
           return false;
         }
-        
+
         return true;
       });
     }
@@ -75,15 +75,15 @@ export async function POST(request: Request) {
     if (options.startTime || options.endTime) {
       filteredData = filteredData.filter(item => {
         const itemTimeString = `${String(item.hh).padStart(2, '0')}:${String(item.minute).padStart(2, '0')}`;
-        
+
         if (options.startTime && itemTimeString < options.startTime) {
           return false;
         }
-        
+
         if (options.endTime && itemTimeString > options.endTime) {
           return false;
         }
-        
+
         return true;
       });
     }

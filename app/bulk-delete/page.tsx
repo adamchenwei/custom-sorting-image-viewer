@@ -188,7 +188,7 @@ const DeleteImagesPage = () => {
 
           <div className="space-y-4">
             <Input
-              label="Maximum Red Percentage Threshold"
+              label="Minimum Red Percentage Threshold"
               type="number"
               min="0"
               max="100"
