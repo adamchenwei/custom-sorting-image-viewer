@@ -5,6 +5,10 @@ import { LLMService } from '../../../services/LLMService';
 const llmService = new LLMService();
 const bulkRenameService = new BulkRenameService(llmService);
 
+// Configure the API route options
+export const dynamic = 'force-dynamic';
+export const maxDuration = parseInt(process.env.API_TIMEOUT_MS || '300000', 10);
+
 export async function POST(request: NextRequest) {
   try {
     console.log('Environment variables in API route:', {

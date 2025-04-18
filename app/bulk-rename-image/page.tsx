@@ -32,10 +32,17 @@ export default function BulkRenameImage() {
         formData.append('images', file);
       });
 
+      const controller = new AbortController();
+      const timeoutMs = parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || '300000', 10);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
       const response = await fetch('/api/bulk-rename-image', {
         method: 'POST',
         body: formData,
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error('Failed to process images');
@@ -137,6 +144,7 @@ export default function BulkRenameImage() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-100">
+                <th className="border p-2">Count</th>
                 <th className="border p-2">Original Filename</th>
                 <th className="border p-2">New Filename</th>
                 <th className="border p-2">Status</th>
@@ -145,6 +153,7 @@ export default function BulkRenameImage() {
             <tbody>
               {summary.map((item, index) => (
                 <tr key={index}>
+                  <td className="border p-2">{index + 1}</td>
                   <td className="border p-2">{item.originalFilename}</td>
                   <td className="border p-2">{item.newFilename}</td>
                   <td className="border p-2">{item.status}</td>

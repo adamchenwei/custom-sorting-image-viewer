@@ -14,6 +14,7 @@ export class BulkRenameService implements IBulkRenameService {
   private readonly baseOutputDir: string;
   private readonly llmService: ILLMService;
   private readonly imageOptimizer: ImageOptimizationService;
+  private readonly BATCH_SIZE = parseInt(process.env.BATCH_SIZE || '10', 10);
 
 
   constructor(
@@ -88,80 +89,82 @@ export class BulkRenameService implements IBulkRenameService {
     return summary;
   }
 
+  private async processBatch(
+    images: File[],
+    instruction: string
+  ): Promise<{ filenames: string[]; explanation: string }> {
+    // Convert and optimize images for LLM inputs
+    const llmInputs: LLMInput[] = await Promise.all(
+      images.map(async (image) => {
+        const imageBuffer = Buffer.from(await image.arrayBuffer());
+        console.log(`\nProcessing image: ${image.name}`);
+        const optimizedImage = await this.imageOptimizer.optimizeImage(imageBuffer);
+        return {
+          content: optimizedImage.buffer,
+          type: 'image' as const,
+        };
+      })
+    );
+
+    // Get filenames and explanation for this batch
+    const [filenamesResponse, fullResponse] = await Promise.all([
+      this.llmService.talk({
+        inputs: llmInputs,
+        instruction: `${instruction}
+Please ONLY return a JSON array of new filenames for the provided ${images.length} images. Each filename should be a string that includes the file extension. Example format: ["new-name-1.jpg", "new-name-2.png"]`,
+        outputType: 'text',
+      }),
+      this.llmService.talk({
+        inputs: llmInputs,
+        instruction: `${instruction}
+Please analyze these ${images.length} images and provide your reasoning.`,
+        outputType: 'text',
+      })
+    ]);
+
+    return {
+      filenames: JSON.parse(filenamesResponse.output.content as string),
+      explanation: fullResponse.output.content as string
+    };
+  }
+
   async renameImages(request: BulkRenameRequest): Promise<BulkRenameResponse> {
     try {
-      // Convert and optimize images for LLM inputs
-      const llmInputs: LLMInput[] = await Promise.all(
-        request.images.map(async (image) => {
-          const imageBuffer = Buffer.from(await image.arrayBuffer());
-          console.log(`\nProcessing image: ${image.name}`);
-          const optimizedImage = await this.imageOptimizer.optimizeImage(imageBuffer);
-          return {
-            content: optimizedImage.buffer,
-            type: 'image' as const,
-          };
-        })
-      );
+      const allImages = request.images;
+      const totalBatches = Math.ceil(allImages.length / this.BATCH_SIZE);
+      let allFilenames: string[] = [];
+      let allExplanations: string[] = [];
 
-      // First get the full response with explanation
-      const fullResponse = await this.llmService.talk({
-        inputs: llmInputs,
-        instruction: `${request.aiInstructionText}
-Please analyze these images and provide your reasoning. Then, at the end of your response, include a JSON array of new filenames. Each filename in the array should include the file extension.`,
-        outputType: 'text',
-      });
+      // Process images in batches
+      for (let i = 0; i < totalBatches; i++) {
+        const start = i * this.BATCH_SIZE;
+        const end = Math.min(start + this.BATCH_SIZE, allImages.length);
+        const batchImages = allImages.slice(start, end);
+        
+        console.log(`Processing batch ${i + 1}/${totalBatches} (${batchImages.length} images)`);
+        
+        const { filenames, explanation } = await this.processBatch(
+          batchImages,
+          `${request.aiInstructionText} (Processing batch ${i + 1}/${totalBatches})`
+        );
 
-      // Then get just the filename array
-      const filenamesResponse = await this.llmService.talk({
-        inputs: llmInputs,
-        instruction: `${request.aiInstructionText}
-Please ONLY return a JSON array of new filenames for the provided images. Each filename should be a string that includes the file extension. Example format: ["new-name-1.jpg", "new-name-2.png"]`,
-        outputType: 'text',
-      });
-
-      // Get both response contents
-      const filenamesContent = filenamesResponse.output.content as string;
-      const fullContent = fullResponse.output.content as string;
-
-      // Parse the filenames array
-      let isFilenamesJson = false;
-      let newFilenames: string[];
-      try {
-        const parsedContent = JSON.parse(filenamesContent);
-        isFilenamesJson = true;
-        // If it's an array, use it as filenames
-        if (Array.isArray(parsedContent)) {
-          newFilenames = parsedContent;
-        } else {
-          // If it's a JSON object but not an array, stringify it nicely and throw
-          throw new Error(`Expected array of filenames, got: ${JSON.stringify(parsedContent, null, 2)}`);
-        }
-      } catch (err) {
-        console.error('Failed to parse AI response as JSON:', err);
-        throw new Error('AI response was not in the expected format');
+        allFilenames = [...allFilenames, ...filenames];
+        allExplanations.push(explanation);
       }
 
       // Generate chatId based on the AI response and instruction
-      const chatId = this.generateChatId(`${request.aiInstructionText}-${newFilenames.join('-')}`);
+      const chatId = this.generateChatId(`${request.aiInstructionText}-${allFilenames.join('-')}`);
 
       // Create images with new names in the public/chat-id directory
       const summary = await this.createImagesWithNames({
-        images: request.images,
-        newFilenames,
+        images: allImages,
+        newFilenames: allFilenames,
         chatId
       });
 
-
-
-      // Try to detect if full response has JSON
-      let isFullResponseJson = false;
-      try {
-        JSON.parse(fullContent);
-        isFullResponseJson = true;
-      } catch (err) {
-        // Not JSON, that's okay
-        isFullResponseJson = false;
-      }
+      // Combine all explanations into one response
+      const fullContent = allExplanations.join('\n\n=== Next Batch ===\n\n');
+      const filenamesContent = JSON.stringify(allFilenames, null, 2);
 
       return {
         status: 'success',
@@ -170,11 +173,11 @@ Please ONLY return a JSON array of new filenames for the provided images. Each f
         aiResponse: {
           filenamesArray: {
             content: filenamesContent,
-            isJson: isFilenamesJson
+            isJson: true
           },
           fullResponse: {
             content: fullContent,
-            isJson: isFullResponseJson
+            isJson: false
           }
         }
       };
