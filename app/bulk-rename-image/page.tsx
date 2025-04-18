@@ -10,6 +10,10 @@ export default function BulkRenameImage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [summary, setSummary] = useState<ImageRenameResult[]>([]);
+  const [aiResponse, setAiResponse] = useState<{
+    filenamesArray: { content: string; isJson: boolean };
+    fullResponse: { content: string; isJson: boolean };
+  } | null>(null);
   
   const { acceptedFiles, getRootProps, getInputProps } = useDropzone({
     accept: {
@@ -39,6 +43,7 @@ export default function BulkRenameImage() {
 
       const result = await response.json();
       setSummary(result.summary);
+      setAiResponse(result.aiResponse || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -98,6 +103,32 @@ export default function BulkRenameImage() {
         <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">
           {error}
         </div>
+      )}
+
+      {aiResponse && (
+        <>
+          <div className="mt-4">
+            <h2 className="text-xl font-bold mb-2">Generated Filenames</h2>
+            <pre className="bg-gray-100 p-4 rounded overflow-auto max-h-48">
+              <code className="block whitespace-pre text-sm">
+                {aiResponse.filenamesArray.isJson 
+                  ? JSON.stringify(JSON.parse(aiResponse.filenamesArray.content), null, 2)
+                  : aiResponse.filenamesArray.content}
+              </code>
+            </pre>
+          </div>
+
+          <div className="mt-4">
+            <h2 className="text-xl font-bold mb-2">AI Chat Reply</h2>
+            <pre className="bg-gray-100 p-4 rounded overflow-auto max-h-96">
+              <code className="block whitespace-pre text-sm">
+                {aiResponse.fullResponse.isJson 
+                  ? JSON.stringify(JSON.parse(aiResponse.fullResponse.content), null, 2)
+                  : aiResponse.fullResponse.content}
+              </code>
+            </pre>
+          </div>
+        </>
       )}
 
       {summary.length > 0 && (

@@ -5,9 +5,19 @@ export interface ImageRenameResult {
 }
 
 export interface BulkRenameResponse {
-  status: string;
+  status: 'success' | 'error';
   summary: ImageRenameResult[];
   chatId: string;
+  aiResponse?: {
+    filenamesArray: {
+      content: string;
+      isJson: boolean;
+    };
+    fullResponse: {
+      content: string;
+      isJson: boolean;
+    };
+  };
 }
 
 export interface BulkRenameRequest {

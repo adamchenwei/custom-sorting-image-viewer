@@ -8,10 +8,12 @@ import {
   ImageRenameResult,
 } from './types/bulk-rename.types';
 import { ILLMService, LLMInput } from './types/llm.types';
+import { ImageOptimizationService } from './ImageOptimizationService';
 
 export class BulkRenameService implements IBulkRenameService {
   private readonly baseOutputDir: string;
   private readonly llmService: ILLMService;
+  private readonly imageOptimizer: ImageOptimizationService;
   private readonly publicDir: string = 'public';
 
   constructor(
@@ -20,6 +22,7 @@ export class BulkRenameService implements IBulkRenameService {
   ) {
     this.llmService = llmService;
     this.baseOutputDir = baseOutputDir;
+    this.imageOptimizer = new ImageOptimizationService();
   }
 
   private generateChatId(instruction: string): string {
@@ -87,23 +90,56 @@ export class BulkRenameService implements IBulkRenameService {
 
   async renameImages(request: BulkRenameRequest): Promise<BulkRenameResponse> {
     try {
-      // Convert images to LLM inputs
+      // Convert and optimize images for LLM inputs
       const llmInputs: LLMInput[] = await Promise.all(
-        request.images.map(async (image) => ({
-          content: Buffer.from(await image.arrayBuffer()),
-          type: 'image' as const,
-        }))
+        request.images.map(async (image) => {
+          const imageBuffer = Buffer.from(await image.arrayBuffer());
+          console.log(`\nProcessing image: ${image.name}`);
+          const optimizedImage = await this.imageOptimizer.optimizeImage(imageBuffer);
+          return {
+            content: optimizedImage.buffer,
+            type: 'image' as const,
+          };
+        })
       );
 
-      // Get AI suggestions for new filenames
-      const llmResponse = await this.llmService.talk({
+      // First get the full response with explanation
+      const fullResponse = await this.llmService.talk({
         inputs: llmInputs,
-        instruction: `${request.aiInstructionText}\nPlease return a JSON array of new filenames for the provided images. Each filename should be a string that includes the file extension. Example format: ["new-name-1.jpg", "new-name-2.png"]`,
+        instruction: `${request.aiInstructionText}
+Please analyze these images and provide your reasoning. Then, at the end of your response, include a JSON array of new filenames. Each filename in the array should include the file extension.`,
         outputType: 'text',
       });
 
-      // Parse the JSON response
-      const newFilenames = JSON.parse(llmResponse.output.content as string) as string[];
+      // Then get just the filename array
+      const filenamesResponse = await this.llmService.talk({
+        inputs: llmInputs,
+        instruction: `${request.aiInstructionText}
+Please ONLY return a JSON array of new filenames for the provided images. Each filename should be a string that includes the file extension. Example format: ["new-name-1.jpg", "new-name-2.png"]`,
+        outputType: 'text',
+      });
+
+      // Get both response contents
+      const filenamesContent = filenamesResponse.output.content as string;
+      const fullContent = fullResponse.output.content as string;
+
+      // Parse the filenames array
+      let isFilenamesJson = false;
+      let newFilenames: string[];
+      try {
+        const parsedContent = JSON.parse(filenamesContent);
+        isFilenamesJson = true;
+        // If it's an array, use it as filenames
+        if (Array.isArray(parsedContent)) {
+          newFilenames = parsedContent;
+        } else {
+          // If it's a JSON object but not an array, stringify it nicely and throw
+          throw new Error(`Expected array of filenames, got: ${JSON.stringify(parsedContent, null, 2)}`);
+        }
+      } catch (err) {
+        console.error('Failed to parse AI response as JSON:', err);
+        throw new Error('AI response was not in the expected format');
+      }
 
       // Generate chatId based on the AI response and instruction
       const chatId = this.generateChatId(`${request.aiInstructionText}-${newFilenames.join('-')}`);
@@ -128,10 +164,30 @@ export class BulkRenameService implements IBulkRenameService {
         }
       }
 
+      // Try to detect if full response has JSON
+      let isFullResponseJson = false;
+      try {
+        JSON.parse(fullContent);
+        isFullResponseJson = true;
+      } catch (err) {
+        // Not JSON, that's okay
+        isFullResponseJson = false;
+      }
+
       return {
         status: 'success',
         summary,
         chatId,
+        aiResponse: {
+          filenamesArray: {
+            content: filenamesContent,
+            isJson: isFilenamesJson
+          },
+          fullResponse: {
+            content: fullContent,
+            isJson: isFullResponseJson
+          }
+        }
       };
     } catch (error) {
       console.error('Failed to process images:', error);

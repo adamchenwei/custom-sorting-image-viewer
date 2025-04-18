@@ -7,10 +7,12 @@ import {
   LLMProvider,
   MediaType,
 } from './types/llm.types';
+import { ImageOptimizationService } from './ImageOptimizationService';
 
 export class LLMService implements ILLMService {
   private openai: OpenAI;
   private anthropic: Anthropic;
+  private imageOptimizer: ImageOptimizationService;
 
   constructor(
     openaiApiKey: string = process.env.OPENAI_API_KEY || '',
@@ -19,6 +21,7 @@ export class LLMService implements ILLMService {
     console.log('Anthropic API key----------:', anthropicApiKey);
     this.openai = new OpenAI({ apiKey: openaiApiKey });
     this.anthropic = new Anthropic({ apiKey: anthropicApiKey });
+    this.imageOptimizer = new ImageOptimizationService();
   }
 
   private async talkToOpenAI(
@@ -39,13 +42,15 @@ export class LLMService implements ILLMService {
       if (input.type === 'text') {
         messages.push({ role: 'user', content: input.content as string });
       } else if (input.type === 'image') {
+        // Optimize image before sending to OpenAI
+        const optimizedImage = await this.imageOptimizer.optimizeImage(input.content as Buffer);
         messages.push({
           role: 'user',
           content: [
             {
               type: 'image_url',
               image_url: {
-                url: `data:image/jpeg;base64,${(input.content as Buffer).toString('base64')}`,
+                url: `data:${optimizedImage.mimeType};base64,${optimizedImage.buffer.toString('base64')}`,
               },
             },
           ],
@@ -57,6 +62,14 @@ export class LLMService implements ILLMService {
       model: 'gpt-4-vision-preview',
       messages,
       max_tokens: 1000,
+    });
+
+    // Log token usage
+    console.log('OpenAI API Usage:', {
+      promptTokens: response.usage?.prompt_tokens || 0,
+      completionTokens: response.usage?.completion_tokens || 0,
+      totalTokens: response.usage?.total_tokens || 0,
+      estimatedCost: `$${((response.usage?.total_tokens || 0) * 0.00001).toFixed(4)}` // $0.01 per 1K tokens
     });
 
     return {
@@ -84,11 +97,9 @@ export class LLMService implements ILLMService {
         if (input.type === 'text') {
           messages.push({ role: 'user', content: input.content as string });
         } else if (input.type === 'image') {
-          // Convert image content to base64
-          const base64Data = (input.content as Buffer).toString('base64');
-          
-          // Always use PNG as the media type
-          const mediaType = 'image/png';
+          // Optimize image before converting to base64
+          const optimizedImage = await this.imageOptimizer.optimizeImage(input.content as Buffer);
+          const base64Data = optimizedImage.buffer.toString('base64');
           
           messages.push({
             role: 'user',
@@ -97,7 +108,7 @@ export class LLMService implements ILLMService {
                 type: 'image',
                 source: {
                   type: 'base64',
-                  media_type: mediaType,
+                  media_type: optimizedImage.mimeType,
                   data: base64Data,
                 },
               },
@@ -114,7 +125,16 @@ export class LLMService implements ILLMService {
         messages,
       });
 
-      console.log('Anthropic API response:', response);
+      // Log token usage and cost
+      console.log('Anthropic API Usage:', {
+        inputTokens: response.usage?.input_tokens || 0,
+        outputTokens: response.usage?.output_tokens || 0,
+        totalTokens: (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0),
+        estimatedCost: `$${(
+          ((response.usage?.input_tokens || 0) * 0.00015) + // $0.15 per 1K input tokens
+          ((response.usage?.output_tokens || 0) * 0.00075)  // $0.75 per 1K output tokens
+        ).toFixed(4)}`
+      });
 
       return {
         content: response.content[0]?.text || '',
@@ -128,25 +148,11 @@ export class LLMService implements ILLMService {
 
   async talk(request: LLMRequest): Promise<LLMResponse> {
     const outputType = request.outputType || 'text';
-    let output;
-    let provider = request.provider || 'anthropic';
+    const provider = request.provider || 'anthropic';
 
-    try {
-      if (provider === 'anthropic') {
-        output = await this.talkToAnthropic(request.instruction, request.inputs, outputType);
-      } else {
-        output = await this.talkToOpenAI(request.instruction, request.inputs, outputType);
-      }
-    } catch (error) {
-      if (provider === 'anthropic' && !request.provider) {
-        // If Anthropic fails and it was the default choice, try OpenAI as fallback
-        console.warn('Anthropic API failed, falling back to OpenAI:', error);
-        provider = 'openai';
-        output = await this.talkToOpenAI(request.instruction, request.inputs, outputType);
-      } else {
-        throw error;
-      }
-    }
+    const output = provider === 'anthropic'
+      ? await this.talkToAnthropic(request.instruction, request.inputs, outputType)
+      : await this.talkToOpenAI(request.instruction, request.inputs, outputType);
 
     return {
       output,
