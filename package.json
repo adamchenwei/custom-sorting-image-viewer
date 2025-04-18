@@ -14,13 +14,16 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.18.0",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.469.0",
     "next": "14.2.13",
+    "openai": "^4.29.1",
     "react": "^18",
     "react-dom": "^18",
-    "react-dropzone": "^14.3.5",
+    "react-dropzone": "^14.3.8",
     "sharp": "^0.33.5",
+    "slugify": "^1.6.6",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
@@ -30,6 +33,7 @@
     "@types/node": "^20.17.10",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/uuid": "^10.0.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.13",
     "install": "^0.13.0",
