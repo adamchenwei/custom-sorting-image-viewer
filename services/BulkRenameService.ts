@@ -12,10 +12,11 @@ import { ILLMService, LLMInput } from './types/llm.types';
 export class BulkRenameService implements IBulkRenameService {
   private readonly baseOutputDir: string;
   private readonly llmService: ILLMService;
+  private readonly publicDir: string = 'public';
 
   constructor(
     llmService: ILLMService,
-    baseOutputDir: string = 'public/images/renamed'
+    baseOutputDir: string = 'public/renamed'
   ) {
     this.llmService = llmService;
     this.baseOutputDir = baseOutputDir;
@@ -41,6 +42,49 @@ export class BulkRenameService implements IBulkRenameService {
     return `${slug}-${timestamp}`;
   }
 
+  private async createImagesWithNames(params: {
+    images: File[];
+    newFilenames: string[];
+    chatId: string;
+  }): Promise<ImageRenameResult[]> {
+    const { images, newFilenames, chatId } = params;
+    const outputDir = path.join(this.publicDir, chatId);
+
+    // Ensure output directory exists
+    await fs.mkdir(outputDir, { recursive: true });
+
+    const summary: ImageRenameResult[] = [];
+
+    // Process each image with the new filenames
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      const newFilename = newFilenames[i] || `unnamed_${i}${path.extname(image.name)}`;
+
+      try {
+        // Save the image to the output directory
+        const buffer = await image.arrayBuffer();
+        await fs.writeFile(
+          path.join(outputDir, newFilename),
+          Buffer.from(buffer)
+        );
+
+        summary.push({
+          originalFilename: image.name,
+          newFilename,
+          status: 'success',
+        });
+      } catch (error) {
+        summary.push({
+          originalFilename: image.name,
+          newFilename,
+          status: 'error',
+        });
+      }
+    }
+
+    return summary;
+  }
+
   async renameImages(request: BulkRenameRequest): Promise<BulkRenameResponse> {
     try {
       // Convert images to LLM inputs
@@ -63,37 +107,24 @@ export class BulkRenameService implements IBulkRenameService {
 
       // Generate chatId based on the AI response and instruction
       const chatId = this.generateChatId(`${request.aiInstructionText}-${newFilenames.join('-')}`);
-      const outputDir = path.join(this.baseOutputDir, chatId);
 
-      // Ensure output directory exists
+      // Create images with new names in the public/chat-id directory
+      const summary = await this.createImagesWithNames({
+        images: request.images,
+        newFilenames,
+        chatId
+      });
+
+      // Also save copies to the original output directory for backward compatibility
+      const outputDir = path.join(this.baseOutputDir, chatId);
       await fs.mkdir(outputDir, { recursive: true });
 
-      const summary: ImageRenameResult[] = [];
-
-      // Process each image with the new filenames
-      for (let i = 0; i < request.images.length; i++) {
-        const image = request.images[i];
-        const newFilename = newFilenames[i] || `unnamed_${i}${path.extname(image.name)}`;
-
-        try {
-          // Save the image to the output directory
-          const buffer = await image.arrayBuffer();
-          await fs.writeFile(
-            path.join(outputDir, newFilename),
-            Buffer.from(buffer)
-          );
-
-          summary.push({
-            originalFilename: image.name,
-            newFilename,
-            status: 'success',
-          });
-        } catch (error) {
-          summary.push({
-            originalFilename: image.name,
-            newFilename,
-            status: 'error',
-          });
+      // Copy files from public/chat-id to the original output directory
+      for (const result of summary) {
+        if (result.status === 'success') {
+          const sourceFile = path.join(this.publicDir, chatId, result.newFilename);
+          const destFile = path.join(outputDir, result.newFilename);
+          await fs.copyFile(sourceFile, destFile);
         }
       }
 
