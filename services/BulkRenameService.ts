@@ -14,7 +14,7 @@ export class BulkRenameService implements IBulkRenameService {
   private readonly baseOutputDir: string;
   private readonly llmService: ILLMService;
   private readonly imageOptimizer: ImageOptimizationService;
-  private readonly publicDir: string = 'public';
+
 
   constructor(
     llmService: ILLMService,
@@ -51,7 +51,7 @@ export class BulkRenameService implements IBulkRenameService {
     chatId: string;
   }): Promise<ImageRenameResult[]> {
     const { images, newFilenames, chatId } = params;
-    const outputDir = path.join(this.publicDir, chatId);
+    const outputDir = path.join(this.baseOutputDir, chatId);
 
     // Ensure output directory exists
     await fs.mkdir(outputDir, { recursive: true });
@@ -151,18 +151,7 @@ Please ONLY return a JSON array of new filenames for the provided images. Each f
         chatId
       });
 
-      // Also save copies to the original output directory for backward compatibility
-      const outputDir = path.join(this.baseOutputDir, chatId);
-      await fs.mkdir(outputDir, { recursive: true });
 
-      // Copy files from public/chat-id to the original output directory
-      for (const result of summary) {
-        if (result.status === 'success') {
-          const sourceFile = path.join(this.publicDir, chatId, result.newFilename);
-          const destFile = path.join(outputDir, result.newFilename);
-          await fs.copyFile(sourceFile, destFile);
-        }
-      }
 
       // Try to detect if full response has JSON
       let isFullResponseJson = false;
