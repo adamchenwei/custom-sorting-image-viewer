@@ -207,8 +207,30 @@ Please analyze these ${images.length} images and provide your reasoning.`,
         chatId
       });
 
-      // Combine all explanations into one response
-      const fullContent = allExplanations.join('\n\n=== Next Batch ===\n\n');
+      // Process explanations to merge them seamlessly
+      let mergedExplanation = '';
+      if (allExplanations.length === 1) {
+        // If only one batch, use it directly
+        mergedExplanation = allExplanations[0];
+      } else {
+        // For multiple batches, try to merge them more intelligently
+        // First, instruct the LLM to merge the explanations
+        try {
+          if (allExplanations.length > 0) {
+            const mergeResponse = await this.llmService.talk({
+              inputs: [],
+              instruction: `I have analyzed ${allImages.length} images in ${totalBatches} batches. Here are my separate analyses for each batch:\n\n${allExplanations.join('\n\n=== Next Batch ===\n\n')}\n\nPlease merge these analyses into one coherent explanation, removing any redundancies and batch-specific references. Provide a unified analysis of all the images.`,
+              outputType: 'text',
+            });
+            mergedExplanation = mergeResponse.output.content as string;
+          }
+        } catch (error) {
+          console.warn('Failed to merge explanations, using concatenated version:', error);
+          // Fallback to simple concatenation with improved formatting
+          mergedExplanation = allExplanations.join('\n\n');
+        }
+      }
+      
       const filenamesContent = JSON.stringify(allFilenames, null, 2);
 
       return {
@@ -221,7 +243,7 @@ Please analyze these ${images.length} images and provide your reasoning.`,
             isJson: true
           },
           fullResponse: {
-            content: fullContent,
+            content: mergedExplanation,
             isJson: false
           }
         }
