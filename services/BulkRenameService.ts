@@ -111,7 +111,7 @@ export class BulkRenameService implements IBulkRenameService {
       this.llmService.talk({
         inputs: llmInputs,
         instruction: `${instruction}
-Please ONLY return a JSON array of new filenames for the provided ${images.length} images. Each filename should be a string that includes the file extension. Example format: ["new-name-1.jpg", "new-name-2.png"]`,
+Please ONLY return a JSON array of new filenames for the provided ${images.length} images. Each filename should be a string that includes the file extension. Make sure to maintain consistency with any previously mentioned filenames. Example format: ["new-name-1.jpg", "new-name-2.png"]`,
         outputType: 'text',
       }),
       this.llmService.talk({
@@ -122,8 +122,43 @@ Please analyze these ${images.length} images and provide your reasoning.`,
       })
     ]);
 
+    // Parse and validate filenames
+    let parsedFilenames: string[] = [];
+    try {
+      parsedFilenames = JSON.parse(filenamesResponse.output.content as string);
+      
+      // Ensure we have the correct number of filenames
+      if (parsedFilenames.length !== images.length) {
+        console.warn(`LLM returned ${parsedFilenames.length} filenames for ${images.length} images. Adding fallback names.`);
+        
+        // Extend array with fallback names if needed
+        while (parsedFilenames.length < images.length) {
+          const index = parsedFilenames.length;
+          parsedFilenames.push(`unnamed_${index}${path.extname(images[index].name)}`);
+        }
+        
+        // Trim excess filenames if needed
+        if (parsedFilenames.length > images.length) {
+          parsedFilenames = parsedFilenames.slice(0, images.length);
+        }
+      }
+      
+      // Ensure all filenames have extensions
+      parsedFilenames = parsedFilenames.map((filename, index) => {
+        if (!path.extname(filename)) {
+          return `${filename}${path.extname(images[index].name)}`;
+        }
+        return filename;
+      });
+      
+    } catch (error) {
+      console.error('Failed to parse filenames from LLM response:', error);
+      // Fallback to default naming
+      parsedFilenames = images.map((image, index) => `unnamed_${index}${path.extname(image.name)}`);
+    }
+    
     return {
-      filenames: JSON.parse(filenamesResponse.output.content as string),
+      filenames: parsedFilenames,
       explanation: fullResponse.output.content as string
     };
   }
@@ -143,9 +178,19 @@ Please analyze these ${images.length} images and provide your reasoning.`,
         
         console.log(`Processing batch ${i + 1}/${totalBatches} (${batchImages.length} images)`);
         
+        // For the first batch, generate filenames normally
+        // For subsequent batches, pass the context of already generated filenames
+        let batchInstruction = request.aiInstructionText;
+        if (i > 0 && allFilenames.length > 0) {
+          // Add context about previously generated filenames
+          batchInstruction = `${request.aiInstructionText}\n\nIMPORTANT: For consistency, please follow the naming pattern used in these previously generated filenames: ${JSON.stringify(allFilenames)}\n\n(Processing batch ${i + 1}/${totalBatches})`;
+        } else {
+          batchInstruction = `${request.aiInstructionText} (Processing batch ${i + 1}/${totalBatches})`;
+        }
+        
         const { filenames, explanation } = await this.processBatch(
           batchImages,
-          `${request.aiInstructionText} (Processing batch ${i + 1}/${totalBatches})`
+          batchInstruction
         );
 
         allFilenames = [...allFilenames, ...filenames];
