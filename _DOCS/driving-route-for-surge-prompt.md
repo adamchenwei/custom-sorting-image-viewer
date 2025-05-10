@@ -1,5 +1,7 @@
 Create a detailed hour-by-hour driving schedule (from 4:30AM until 11:59PM) for maximum surge pricing potential in North Palm Beach, Palm Beach Gardens, Jupiter, and Tequesta.
 
+
+
 Include:
 - Starting location: North Palm Beach
 - Exact times and specific pickup/dropoff locations
@@ -176,9 +178,15 @@ Additional reserach sources:
 }
 
 IMPORTANT: 
-For each hourly routine:
-- Indicate which Rideshare platform is the surge for, Uber or LYFT or both.
-- Provide surge rating, use stars and describe what each star means.
-- Provide confidence level, use percentage and describe what each percentage range means.
+- For each hour
+ - Indicate which Rideshare platform is the surge for, Uber or LYFT or both.
+ - Provide surge rating use stars rate the hour's surge potential, 1 star is low, 5 stars is high. also inform the measurement of each star.
+ - Provide confidence level of any surge at all during the hour, use percentage and describe what each percentage range means.
 
-If you performed search on anything outside of the criteria, mention what is the prompt you used and bold them under ADDITIONAL RESEARCH COMPLETED
+- For each hourly routine's hotspots list:
+  - Provide confidence level of the hotspot potential for surge, use percentage, add reasoning behind it.
+  - When list each hotspot, provide likelyhood of surge in percentage compare to the other hotspots in the same hour.
+
+- If you performed search on anything outside of the criteria, mention what is the prompt you used and bold them under ADDITIONAL RESEARCH COMPLETED
+
+- top of the page indicate date and the holiday for the day as well as any other holidays within 2 days.
