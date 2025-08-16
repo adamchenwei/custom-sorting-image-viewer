@@ -7,6 +7,7 @@ interface SortOptions {
   startTime: string;
   endTime: string;
   weeks: string[];
+  onlySameMonth: boolean;
 }
 
 interface SorterModalProps {
@@ -37,6 +38,7 @@ function getDefaultOptions(): SortOptions {
     startTime: format(now, "HH:mm"),
     endTime: format(later, "HH:mm"),
     weeks: [DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1]],
+    onlySameMonth: false,
   };
 }
 
@@ -54,6 +56,7 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
           ...DEFAULT_OPTIONS,
           ...parsed,
           weeks: Array.isArray(parsed.weeks) ? parsed.weeks : [],
+          onlySameMonth: typeof parsed.onlySameMonth === 'boolean' ? parsed.onlySameMonth : false,
         };
       } catch (e) {
         console.error("Error parsing saved sort options:", e);
@@ -81,6 +84,13 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
       weeks: prev.weeks.includes(day)
         ? prev.weeks.filter((d) => d !== day)
         : [...prev.weeks, day],
+    }));
+  };
+
+  const handleOnlySameMonthChange = () => {
+    setOptions((prev) => ({
+      ...prev,
+      onlySameMonth: !prev.onlySameMonth,
     }));
   };
 
@@ -212,6 +222,21 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
                 onChange={handleInputChange}
                 className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+
+            <div>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.onlySameMonth}
+                  onChange={handleOnlySameMonthChange}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Only Same Month</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1 ml-6">
+                Filter images to only show those from the same month as today (August) across all years in the date range
+              </p>
             </div>
 
             <div>
