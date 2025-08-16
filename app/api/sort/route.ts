@@ -9,6 +9,7 @@ interface SortOptions {
   startTime: string;
   endTime: string;
   weeks?: string[];
+  onlySameMonth?: boolean;
 }
 
 interface ImageData {
@@ -85,6 +86,14 @@ export async function POST(request: Request) {
         }
 
         return true;
+      });
+    }
+
+    // Month filtering (only same month as current date)
+    if (options.onlySameMonth) {
+      const currentMonth = new Date().getMonth() + 1; // getMonth() returns 0-11, so add 1
+      filteredData = filteredData.filter(item => {
+        return item.mm === currentMonth;
       });
     }
 
