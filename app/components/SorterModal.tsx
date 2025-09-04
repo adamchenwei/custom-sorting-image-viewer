@@ -8,6 +8,8 @@ interface SortOptions {
   endTime: string;
   weeks: string[];
   onlySameMonth: boolean;
+  aMonthBefore: boolean;
+  aMonthAfter: boolean;
 }
 
 interface SorterModalProps {
@@ -39,6 +41,8 @@ function getDefaultOptions(): SortOptions {
     endTime: format(later, "HH:mm"),
     weeks: [DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1]],
     onlySameMonth: false,
+    aMonthBefore: false,
+    aMonthAfter: false,
   };
 }
 
@@ -57,6 +61,8 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
           ...parsed,
           weeks: Array.isArray(parsed.weeks) ? parsed.weeks : [],
           onlySameMonth: typeof parsed.onlySameMonth === 'boolean' ? parsed.onlySameMonth : false,
+          aMonthBefore: typeof parsed.aMonthBefore === 'boolean' ? parsed.aMonthBefore : false,
+          aMonthAfter: typeof parsed.aMonthAfter === 'boolean' ? parsed.aMonthAfter : false,
         };
       } catch (e) {
         console.error("Error parsing saved sort options:", e);
@@ -84,6 +90,20 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
       weeks: prev.weeks.includes(day)
         ? prev.weeks.filter((d) => d !== day)
         : [...prev.weeks, day],
+    }));
+  };
+
+  const handleAMonthBeforeChange = () => {
+    setOptions((prev) => ({
+      ...prev,
+      aMonthBefore: !prev.aMonthBefore,
+    }));
+  };
+
+  const handleAMonthAfterChange = () => {
+    setOptions((prev) => ({
+      ...prev,
+      aMonthAfter: !prev.aMonthAfter,
     }));
   };
 
@@ -236,6 +256,36 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
               </label>
               <p className="text-xs text-gray-500 mt-1 ml-6">
                 Filter images to only show those from the same month as today (August) across all years in the date range
+              </p>
+            </div>
+
+            <div>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.aMonthBefore}
+                  onChange={handleAMonthBeforeChange}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">A Month Before</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1 ml-6">
+                Include images from the month before the current month (July).
+              </p>
+            </div>
+
+            <div>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.aMonthAfter}
+                  onChange={handleAMonthAfterChange}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">A Month After</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1 ml-6">
+                Include images from the month after the current month (September).
               </p>
             </div>
 

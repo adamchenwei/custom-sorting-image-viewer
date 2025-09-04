@@ -10,6 +10,8 @@ interface SortOptions {
   endTime: string;
   weeks?: string[];
   onlySameMonth?: boolean;
+  aMonthBefore?: boolean;
+  aMonthAfter?: boolean;
 }
 
 interface ImageData {
@@ -89,12 +91,27 @@ export async function POST(request: Request) {
       });
     }
 
-    // Month filtering (only same month as current date)
-    if (options.onlySameMonth) {
-      const currentMonth = new Date().getMonth() + 1; // getMonth() returns 0-11, so add 1
-      filteredData = filteredData.filter(item => {
-        return item.mm === currentMonth;
-      });
+    // Month filtering
+    const allowedMonths: number[] = [];
+    if (options.onlySameMonth || options.aMonthBefore || options.aMonthAfter) {
+      const currentMonth = new Date().getMonth() + 1; // 1-12
+
+      if (options.onlySameMonth) {
+        allowedMonths.push(currentMonth);
+      }
+      if (options.aMonthBefore) {
+        const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+        allowedMonths.push(prevMonth);
+      }
+      if (options.aMonthAfter) {
+        const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+        allowedMonths.push(nextMonth);
+      }
+    }
+
+    if (allowedMonths.length > 0) {
+      const uniqueMonths = [...new Set(allowedMonths)];
+      filteredData = filteredData.filter(item => uniqueMonths.includes(item.mm));
     }
 
     // Week day filtering
