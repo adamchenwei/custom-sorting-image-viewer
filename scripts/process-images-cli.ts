@@ -57,6 +57,16 @@ async function main() {
     console.log('Starting image processing...');
     const { items, summary, updatedRecords } = await processImagesDirectory(imagesDir, publicDir, optimizationRecords);
 
+    const initialRecordKeys = Object.keys(optimizationRecords);
+    const currentImageFileNames = new Set(imageFiles.map(file => path.parse(file).name));
+    const orphanedKeys = initialRecordKeys.filter(key => !currentImageFileNames.has(key));
+
+    if (orphanedKeys.length > 0) {
+      console.log('\nOrphaned entries found in optimization-record.json (original images may have been deleted):');
+      orphanedKeys.forEach(key => console.log(`- ${key}`));
+      console.log(`\nTo clean up, run: npm run image:clean-up-optimization-cache`);
+    }
+
     fs.writeFileSync(optimizationRecordPath, JSON.stringify(updatedRecords, null, 2));
     console.log('Optimization records updated.');
 
