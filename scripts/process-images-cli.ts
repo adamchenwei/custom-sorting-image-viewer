@@ -1,18 +1,19 @@
 // scripts/process-images-cli.ts
 import path from 'path';
 import fs from 'fs';
-import { processImagesDirectory, extractDateTimeFromFileName } from './processImages';
+import { processImagesDirectory, OptimizationRecord } from './processImages';
 
 interface ProcessingState {
   totalImagesProcessed: number;
   forceUpdate: boolean;
 }
 
-function main() {
+async function main() {
   try {
     const publicDir = path.join(process.cwd(), 'public');
     const imagesDir = path.join(publicDir, 'images');
     const dataJsonPath = path.join(publicDir, 'data.json');
+    const optimizationRecordPath = path.join(publicDir, 'optimization-record.json');
     const stateFilePath = path.join(process.cwd(), 'image-processing-state.json');
 
     if (!fs.existsSync(imagesDir)) {
@@ -38,8 +39,26 @@ function main() {
       return;
     }
 
+    let optimizationRecords: OptimizationRecord = {};
+    if (fs.existsSync(optimizationRecordPath)) {
+      optimizationRecords = JSON.parse(fs.readFileSync(optimizationRecordPath, 'utf8'));
+    } else {
+      console.log('Optimization record not found, creating a new one.');
+    }
+
+    const optimizedDir = path.join(publicDir, 'images_optimized');
+    const optimizedImageCount = fs.existsSync(optimizedDir) ? fs.readdirSync(optimizedDir).length : 0;
+
+    if (currentImageCount === optimizedImageCount && !state.forceUpdate) {
+      console.log(`Skipping image processing: Image count (${currentImageCount}) matches optimized image count (${optimizedImageCount}) and forceUpdate is false.`);
+      return;
+    }
+
     console.log('Starting image processing...');
-    const { items, summary } = processImagesDirectory(imagesDir, publicDir);
+    const { items, summary, updatedRecords } = await processImagesDirectory(imagesDir, publicDir, optimizationRecords);
+
+    fs.writeFileSync(optimizationRecordPath, JSON.stringify(updatedRecords, null, 2));
+    console.log('Optimization records updated.');
 
     fs.writeFileSync(dataJsonPath, JSON.stringify(items, null, 2));
 
