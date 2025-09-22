@@ -79,8 +79,11 @@ async function main() {
     );
     const currentImageCount = imageFiles.length;
 
-    if (currentImageCount === state.totalImagesProcessed && !state.forceUpdate) {
-      console.log(`Skipping image processing: Image count (${currentImageCount}) is unchanged and forceUpdate is false.`);
+    const optimizedDir = path.join(publicDir, 'images_optimized');
+    const optimizedImageCount = fs.existsSync(optimizedDir) ? fs.readdirSync(optimizedDir).filter(f => f !== '.DS_Store').length : 0;
+
+    if (currentImageCount === state.totalImagesProcessed && currentImageCount === optimizedImageCount && !state.forceUpdate) {
+      console.log(`Skipping image processing: Image count (${currentImageCount}) is unchanged, optimized count (${optimizedImageCount}) matches, and forceUpdate is false.`);
       return;
     }
 
@@ -91,13 +94,6 @@ async function main() {
       console.log('Optimization record not found, creating a new one.');
     }
 
-    const optimizedDir = path.join(publicDir, 'images_optimized');
-    const optimizedImageCount = fs.existsSync(optimizedDir) ? fs.readdirSync(optimizedDir).length : 0;
-
-    if (currentImageCount === optimizedImageCount && !state.forceUpdate) {
-      console.log(`Skipping image processing: Image count (${currentImageCount}) matches optimized image count (${optimizedImageCount}) and forceUpdate is false.`);
-      return;
-    }
 
     console.log('Starting image processing...');
     const { items, summary, updatedRecords } = await processImagesDirectory(imagesDir, publicDir, optimizationRecords);
