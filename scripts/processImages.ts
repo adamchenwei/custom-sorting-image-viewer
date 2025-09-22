@@ -142,7 +142,7 @@ export async function processImagesDirectory(
             try {
               await sharp(fullPath)
                 .resize({ width: 1920, withoutEnlargement: true })
-                .webp({ quality: 40 })
+                .webp({ quality: 20 })
                 .toFile(optimizedFilePath);
 
               const relativePath = path.relative(baseDir, optimizedFilePath);
