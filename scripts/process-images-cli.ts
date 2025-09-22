@@ -1,4 +1,49 @@
-// scripts/process-images-cli.ts
+/**
+ * @file This script processes images from the `public/images` directory, extracts metadata,
+ * and generates a `public/data.json` file that the application uses to display images.
+ * It includes a multi-level caching mechanism to avoid reprocessing images unnecessarily.
+ *
+ * Caching and Processing Logic:
+ *
+ * 1. State Management (`image-processing-state.json`):
+ *    - The script starts by reading `image-processing-state.json`, which stores the state from the last run.
+ *    - This state includes `totalImagesProcessed` (the number of images found in the previous run) and a `forceUpdate` flag.
+ *    - If `forceUpdate` is `true`, all caching checks are bypassed, and images are reprocessed.
+ *
+ * 2. First-Level Cache Check (Image Count):
+ *    - The script performs a quick check by comparing the current number of files in `public/images`
+ *      with `totalImagesProcessed` from the state file.
+ *    - If the count is the same and `forceUpdate` is `false`, the script exits, assuming no changes have occurred.
+ *
+ * 3. Second-Level Cache Check (Optimized Image Count):
+ *    - If the first check fails, the script compares the number of source images with the number of
+ *      images in the `public/images_optimized` directory.
+ *    - If the counts match and `forceUpdate` is `false`, the script exits. This is a secondary check
+ *      to ensure that all source images have a corresponding optimized version.
+ *
+ * 4. Image Processing (`processImagesDirectory`):
+ *    - If either of the cache checks indicates a change, the script proceeds to the main processing logic.
+ *    - It loads `public/optimization-record.json`, which contains metadata about previously optimized images.
+ *      This record is passed to the `processImagesDirectory` function to avoid re-optimizing images that
+ *      have not changed.
+ *    - The `processImagesDirectory` function is responsible for:
+ *      - Optimizing new or modified images.
+ *      - Extracting metadata (like date and time from filenames).
+ *      - Returning a list of image data (`items`), a summary of the operation, and the updated optimization records.
+ *
+ * 5. Orphaned Record Detection:
+ *    - After processing, the script checks for "orphaned" entries in the `optimization-record.json`.
+ *    - An orphaned entry is a record for an image that no longer exists in the `public/images` directory.
+ *    - If orphans are found, it logs them and suggests running a cleanup script.
+ *
+ * 6. Output Generation:
+ *    - The script overwrites `public/data.json` with the new image data.
+ *    - It also updates `public/optimization-record.json` with the latest optimization metadata.
+ *
+ * 7. State Update:
+ *    - Finally, the script updates `image-processing-state.json` with the current image count and resets
+ *      the `forceUpdate` flag to `false`, preparing it for the next run.
+ */
 import path from 'path';
 import fs from 'fs';
 import { processImagesDirectory, OptimizationRecord } from './processImages';
