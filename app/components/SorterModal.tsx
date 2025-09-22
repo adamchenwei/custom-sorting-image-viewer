@@ -15,6 +15,7 @@ interface SortOptions {
 interface SorterModalProps {
   onClose: () => void;
   onApply: (options: SortOptions) => void;
+  initialOptions: SortOptions | null;
 }
 
 const SORT_OPTIONS_KEY = "imageSortOptions";
@@ -48,33 +49,9 @@ function getDefaultOptions(): SortOptions {
 
 const DEFAULT_OPTIONS = getDefaultOptions();
 
-export function SorterModal({ onClose, onApply }: SorterModalProps) {
-  const [options, setOptions] = useState<SortOptions>(() => {
-    if (typeof window === "undefined") return DEFAULT_OPTIONS;
+export function SorterModal({ onClose, onApply, initialOptions }: SorterModalProps) {
+  const [options, setOptions] = useState<SortOptions>(initialOptions || DEFAULT_OPTIONS);
 
-    const saved = localStorage.getItem(SORT_OPTIONS_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return {
-          ...DEFAULT_OPTIONS,
-          ...parsed,
-          weeks: Array.isArray(parsed.weeks) ? parsed.weeks : [],
-          onlySameMonth: typeof parsed.onlySameMonth === 'boolean' ? parsed.onlySameMonth : false,
-          aMonthBefore: typeof parsed.aMonthBefore === 'boolean' ? parsed.aMonthBefore : false,
-          aMonthAfter: typeof parsed.aMonthAfter === 'boolean' ? parsed.aMonthAfter : false,
-        };
-      } catch (e) {
-        console.error("Error parsing saved sort options:", e);
-        return DEFAULT_OPTIONS;
-      }
-    }
-    return DEFAULT_OPTIONS;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(SORT_OPTIONS_KEY, JSON.stringify(options));
-  }, [options]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -155,7 +132,6 @@ export function SorterModal({ onClose, onApply }: SorterModalProps) {
 
   const handleClear = () => {
     setOptions(DEFAULT_OPTIONS);
-    localStorage.setItem(SORT_OPTIONS_KEY, JSON.stringify(DEFAULT_OPTIONS));
     onApply(DEFAULT_OPTIONS);
   };
 

@@ -1,5 +1,7 @@
 "use client";
+"use client";
 import { useState, useEffect, useCallback } from "react";
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Image from "next/image";
 import { format } from "date-fns";
 import { ArrowRight, X, CheckSquare, Square, Layers } from "lucide-react";
@@ -25,10 +27,14 @@ interface SortOptions {
   startTime: string;
   endTime: string;
   weeks: string[];
+  onlySameMonth: boolean;
+  aMonthBefore: boolean;
+  aMonthAfter: boolean;
 }
 
 export default function ResultsPage() {
   const [images, setImages] = useState<ImageData[]>([]);
+  const [displayedImages, setDisplayedImages] = useState<ImageData[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [showSorter, setShowSorter] = useState(false);
@@ -36,9 +42,14 @@ export default function ResultsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
-  const [currentSortOptions, setCurrentSortOptions] =
-    useState<SortOptions | null>(null);
+  const [currentSortOptions, setCurrentSortOptions] = useState<SortOptions | null>(null);
   const [isOverlapMode, setIsOverlapMode] = useState(false);
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 20;
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const loadImagesWithSort = async (sortOptions: SortOptions | null) => {
     try {
@@ -56,6 +67,8 @@ export default function ResultsPage() {
         });
         const data = await response.json();
         setImages(data);
+        setDisplayedImages(data.slice(0, itemsPerPage));
+        setPage(1);
         if (data.length > 0) {
           setSelectedImage(data[0]);
           setSelectedIndex(0);
@@ -64,6 +77,8 @@ export default function ResultsPage() {
         const response = await fetch("/api/images");
         const data = await response.json();
         setImages(data);
+        setDisplayedImages(data.slice(0, itemsPerPage));
+        setPage(1);
         if (data.length > 0) {
           setSelectedImage(data[0]);
           setSelectedIndex(0);
@@ -78,29 +93,70 @@ export default function ResultsPage() {
   };
 
   useEffect(() => {
-    const savedOptions = localStorage.getItem("imageSortOptions");
-    const sortOptions = savedOptions ? JSON.parse(savedOptions) : null;
-    setCurrentSortOptions(sortOptions);
-    loadImagesWithSort(sortOptions);
-  }, []);
+    const params = new URLSearchParams(searchParams.toString());
+    const sortOptions: SortOptions = {
+      startDate: params.get('startDate') || '',
+      endDate: params.get('endDate') || '',
+      startTime: params.get('startTime') || '',
+      endTime: params.get('endTime') || '',
+      weeks: params.get('weeks')?.split(',').filter(Boolean) || [],
+      onlySameMonth: params.get('onlySameMonth') === 'true',
+      aMonthBefore: params.get('aMonthBefore') === 'true',
+      aMonthAfter: params.get('aMonthAfter') === 'true',
+    };
+
+    const hasFilters = Object.values(sortOptions).some(value => {
+        if (Array.isArray(value)) return value.length > 0;
+        if (typeof value === 'boolean') return value;
+        return !!value;
+    });
+
+    if (hasFilters) {
+        setCurrentSortOptions(sortOptions);
+        loadImagesWithSort(sortOptions);
+    } else {
+        loadImagesWithSort(null);
+    }
+  }, [searchParams]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "ArrowUp" && selectedIndex > 0) {
         setSelectedIndex((prev) => prev - 1);
-        setSelectedImage(images[selectedIndex - 1]);
-      } else if (e.key === "ArrowDown" && selectedIndex < images.length - 1) {
+        setSelectedImage(displayedImages[selectedIndex - 1]);
+      } else if (e.key === "ArrowDown" && selectedIndex < displayedImages.length - 1) {
         setSelectedIndex((prev) => prev + 1);
-        setSelectedImage(images[selectedIndex + 1]);
+        setSelectedImage(displayedImages[selectedIndex + 1]);
       }
     },
-    [selectedIndex, images]
+    [selectedIndex, displayedImages]
   );
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const bottom = Math.ceil(window.innerHeight + window.pageYOffset) >= document.documentElement.scrollHeight;
+      if (bottom && !loading && displayedImages.length < images.length) {
+        setLoading(true);
+        setTimeout(() => {
+          const nextPage = page + 1;
+          const startIndex = page * itemsPerPage;
+          const endIndex = Math.min(startIndex + itemsPerPage, images.length);
+          const newImages = images.slice(startIndex, endIndex);
+          setDisplayedImages(prevImages => [...prevImages, ...newImages]);
+          setPage(nextPage);
+          setLoading(false);
+        }, 500); // Simulate loading delay
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [page, loading, images, displayedImages]);
 
   const handleImageSelect = (
     image: ImageData,
@@ -122,7 +178,7 @@ export default function ResultsPage() {
 
     setSelectedImage(image);
     setSelectedIndex(
-      images.findIndex((img) => img.assetPath === image.assetPath)
+      displayedImages.findIndex((img) => img.assetPath === image.assetPath)
     );
     if (!isOverlapMode) {
       setSelectedImages(new Set());
@@ -150,7 +206,8 @@ export default function ResultsPage() {
 
       if (moveResult.success && moveResult.data) {
         setImages(moveResult.data);
-
+        setDisplayedImages(moveResult.data.slice(0, itemsPerPage));
+        setPage(1);
         if (moveResult.data.length > 0) {
           const firstVisibleSelected = moveResult.data.find((img) =>
             selectedImages.has(img.assetPath)
@@ -194,6 +251,9 @@ export default function ResultsPage() {
       setImages((prevImages) =>
         prevImages.filter((img) => img.assetPath !== image.assetPath)
       );
+      setDisplayedImages((prevImages) =>
+        prevImages.filter((img) => img.assetPath !== image.assetPath)
+      );
 
       if (selectedImages.has(image.assetPath)) {
         setSelectedImages((prev) => {
@@ -204,9 +264,9 @@ export default function ResultsPage() {
       }
 
       if (selectedImage?.assetPath === image.assetPath) {
-        const nextIndex = Math.min(index, images.length - 2);
+        const nextIndex = Math.min(index, displayedImages.length - 2);
         if (nextIndex >= 0) {
-          setSelectedImage(images[nextIndex]);
+          setSelectedImage(displayedImages[nextIndex]);
           setSelectedIndex(nextIndex);
         } else {
           setSelectedImage(null);
@@ -247,6 +307,9 @@ export default function ResultsPage() {
       setImages((prevImages) =>
         prevImages.filter((img) => !selectedImages.has(img.assetPath))
       );
+      setDisplayedImages((prevImages) =>
+        prevImages.filter((img) => !selectedImages.has(img.assetPath))
+      );
 
       if (selectedImage && selectedImages.has(selectedImage.assetPath)) {
         const remainingImages = images.filter(
@@ -270,19 +333,19 @@ export default function ResultsPage() {
     }
   };
 
-  const handleApplySort = async (options: SortOptions) => {
-    try {
-      setLoading(true);
-      setError(null);
-      setCurrentSortOptions(options);
-      await loadImagesWithSort(options);
-      setShowSorter(false);
-    } catch (err) {
-      console.error("Error applying sort:", err);
-      setError("Failed to apply sorting");
-    } finally {
-      setLoading(false);
-    }
+  const handleApplySort = (options: SortOptions) => {
+    const params = new URLSearchParams();
+    if (options.startDate) params.set('startDate', options.startDate);
+    if (options.endDate) params.set('endDate', options.endDate);
+    if (options.startTime) params.set('startTime', options.startTime);
+    if (options.endTime) params.set('endTime', options.endTime);
+    if (options.weeks && options.weeks.length > 0) params.set('weeks', options.weeks.join(','));
+    if (options.onlySameMonth) params.set('onlySameMonth', 'true');
+    if (options.aMonthBefore) params.set('aMonthBefore', 'true');
+    if (options.aMonthAfter) params.set('aMonthAfter', 'true');
+
+    router.push(`${pathname}?${params.toString()}`);
+    setShowSorter(false);
   };
 
   const renderImageViewer = () => {
@@ -404,13 +467,13 @@ export default function ResultsPage() {
         {/* Scrollable content section */}
         <div className="flex-1 overflow-y-auto p-4">
           <div className="space-y-2">
-            {images.length === 0 && !loading && (
+            {displayedImages.length === 0 && !loading && (
               <div className="p-2 text-gray-500">
                 No images found matching the criteria
               </div>
             )}
 
-            {images.map((image, index) => (
+            {displayedImages.map((image, index) => (
               <div
                 key={image.assetPath}
                 className={`p-2 cursor-pointer rounded flex items-start group ${
@@ -540,6 +603,7 @@ export default function ResultsPage() {
         <SorterModal
           onClose={() => setShowSorter(false)}
           onApply={handleApplySort}
+          initialOptions={currentSortOptions}
         />
       )}
     </div>
