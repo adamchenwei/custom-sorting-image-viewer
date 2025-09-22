@@ -87,6 +87,11 @@ async function main() {
       return;
     }
 
+    if (currentImageCount !== optimizedImageCount) {
+      console.log(`Image count mismatch: source (${currentImageCount}) vs optimized (${optimizedImageCount}). Forcing update.`);
+      state.forceUpdate = true;
+    }
+
     let optimizationRecords: OptimizationRecord = {};
     if (fs.existsSync(optimizationRecordPath)) {
       optimizationRecords = JSON.parse(fs.readFileSync(optimizationRecordPath, 'utf8'));
