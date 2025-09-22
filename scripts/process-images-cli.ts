@@ -80,25 +80,65 @@ async function main() {
     const currentImageCount = imageFiles.length;
 
     const optimizedDir = path.join(publicDir, 'images_optimized');
-    const optimizedImageCount = fs.existsSync(optimizedDir) ? fs.readdirSync(optimizedDir).filter(f => f !== '.DS_Store').length : 0;
-
-    if (currentImageCount === state.totalImagesProcessed && currentImageCount === optimizedImageCount && !state.forceUpdate) {
-      console.log(`Skipping image processing: Image count (${currentImageCount}) is unchanged, optimized count (${optimizedImageCount}) matches, and forceUpdate is false.`);
-      return;
+    if (!fs.existsSync(optimizedDir)) {
+      fs.mkdirSync(optimizedDir, { recursive: true });
     }
-
-    if (currentImageCount !== optimizedImageCount) {
-      console.log(`Image count mismatch: source (${currentImageCount}) vs optimized (${optimizedImageCount}). Forcing update.`);
-      state.forceUpdate = true;
-    }
+    const optimizedImageCount = fs.readdirSync(optimizedDir).filter(f => f !== '.DS_Store').length;
 
     let optimizationRecords: OptimizationRecord = {};
     if (fs.existsSync(optimizationRecordPath)) {
-      optimizationRecords = JSON.parse(fs.readFileSync(optimizationRecordPath, 'utf8'));
-    } else {
-      console.log('Optimization record not found, creating a new one.');
+      try {
+        const recordContent = fs.readFileSync(optimizationRecordPath, 'utf8');
+        if (recordContent.trim()) { // Ensure content is not just whitespace
+          optimizationRecords = JSON.parse(recordContent);
+        }
+      } catch (e) {
+        console.log('Error reading or parsing optimization-record.json, creating a new one.');
+      }
     }
 
+    // Primary skip condition: if all counts match and no force update, skip.
+    if (currentImageCount === state.totalImagesProcessed && currentImageCount === optimizedImageCount && !state.forceUpdate) {
+      console.log(`Skipping image processing: All counts match and forceUpdate is false.`);
+      return;
+    }
+
+    // Synchronization logic: If counts are mismatched, clean the records before processing.
+    if (currentImageCount !== optimizedImageCount || Object.keys(optimizationRecords).length !== currentImageCount) {
+      console.log(`Discrepancy detected: source (${currentImageCount}), optimized (${optimizedImageCount}), records (${Object.keys(optimizationRecords).length}). Synchronizing records.`);
+      const sourceBasenames = new Set(imageFiles.map(file => path.parse(file).name));
+      let recordsChanged = false;
+
+      // Clean up records for images that no longer exist in the source directory
+      const orphanedKeys = Object.keys(optimizationRecords).filter(key => !sourceBasenames.has(key));
+      if (orphanedKeys.length > 0) {
+        console.log('Orphaned source files detected. Cleaning records:');
+        orphanedKeys.forEach(key => {
+          console.log(`- Removing record for ${key}`);
+          delete optimizationRecords[key];
+          recordsChanged = true;
+        });
+      }
+
+      // Clean up records for images that are missing their optimized version
+      const optimizedBasenames = new Set(fs.readdirSync(optimizedDir).map(file => path.parse(file).name));
+      const missingInOptimized = [...sourceBasenames].filter(name => !optimizedBasenames.has(name));
+      if (missingInOptimized.length > 0) {
+        console.log('Missing optimized files detected. Cleaning records to trigger re-processing:');
+        missingInOptimized.forEach(name => {
+          if (optimizationRecords[name]) {
+            console.log(`- Removing record for ${name}`);
+            delete optimizationRecords[name];
+            recordsChanged = true;
+          }
+        });
+      }
+
+      if (recordsChanged) {
+        fs.writeFileSync(optimizationRecordPath, JSON.stringify(optimizationRecords, null, 2));
+        console.log('Optimization records synchronized.');
+      }
+    }
 
     console.log('Starting image processing...');
     const { items, summary, updatedRecords } = await processImagesDirectory(imagesDir, publicDir, optimizationRecords);
