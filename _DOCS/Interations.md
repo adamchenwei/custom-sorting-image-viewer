@@ -73,3 +73,96 @@ now populate the planner data with more details for each day of the month this p
 # 8th iteration
 make sure each page in this page in the tab will show the page title instead of the app name
 
+
+# 9th iteration
+I want to host all the images in a folder that is made to open access to the web, so my app can access it via some kind of private and public key setup, so my computer that host this folder will be using a nodejs server and serve the files to the web, and only if the keys are legit then that url will be surving the file to the requesting app.
+
+the machine will be a windows machine running windows 10 or 11 and nodejs 20.10.0
+
+create an app in this project's /image-host folder so that, this image-host nodejs app will be having above described feature and server any files that is inside its /public folder? so let say if image123.jpg is served from my nodejs app, it will be access through [my-ip]/images/image123.jpg.
+
+# 10th iteration
+ok I think how I category the json as YYYY-MM.json format in /Users/adamchenwei/www/custom-sorting-image-viewer/public/planner-data/ is wrong. I want you reorg all my data so that :
+for each of the "Date" property will become two: "startDate" and "endDate", if its one date in the Date field, startDate and endDate will be the same.
+Time range should have instead of "startTime" and "endTime", if time is one value, startTime and endTime is the same. In term of all the files, consolidate all data into one file under YYYY.md
+
+Also make sure the /planner page work with this new Date fromat. It may need refactor its config bar to incorporate this new date and time format.
+
+Make sure add the similar url param functionality to /planner page as /results page.
+
+
+# 11th Iteration
+For /planner page, I want to add additional fields to each entry so they can be filtered differently:
+
+add these new fields below:
+- schoolDays: {
+  duringBreaks: boolean,
+  duringSchoolDays: boolean,
+  schoolCountyName: string,
+},
+- everyHourOfDay: {
+  // use 24 hours military time format
+  0: boolean,
+  1: boolean,
+  2: boolean,
+  3: boolean,
+  4: boolean,
+  5: boolean,
+  6: boolean,
+  7: boolean,
+  8: boolean,
+  9: boolean,
+  10: boolean,
+  11: boolean,
+  12: boolean,
+  13: boolean,
+  14: boolean,
+  15: boolean,
+  16: boolean,
+  17: boolean,
+  18: boolean,
+  19: boolean,
+  20: boolean,
+  21: boolean,
+  22: boolean,
+  23: boolean,
+}
+
+- everyWeek: {
+  monday: boolean,
+  tuesday: boolean,
+  wednesday: boolean,
+  thursday: boolean,
+  friday: boolean,
+  saturday: boolean,
+  sunday: boolean,
+},
+
+All these fields are optional, and can be empty object {} but when multiple of them present, it should be able to filter out the data correctly by combining them all together.
+
+
+# 12th iteration
+
+I want to add a new prop for each entries of /Users/adamchenwei/www/custom-sorting-image-viewer/public/planner-data files. The new prop is "isPrivateRoute" boolean. If it is true, it means the entry is private and in the table for /planner, that row's border will be highlighted in red.
+make sure add a filter for that as well after "School Schedule" filter for /planner page.
+
+
+# 13 iteration (TODO, I think it maybe better to seperate school and holiday into different data proper and filters...)
+
+refactor file name from /Users/adamchenwei/www/custom-sorting-image-viewer/public/planner-data/2025.json to /Users/adamchenwei/www/custom-sorting-image-viewer/public/planner-data/surges-2025.json, also for 2026. make sure app /planner page can handle this change.
+
+since mentioning holiday, I should for each entry in planner-data files for each year's surge json file, add a new prop called "schoolAndHoliday", it should have same data structure describing school and holiday in the /public/planner-data/holiday-and-school-days-2025.json file, they should should match with the name of the holiday in the /public/planner-data/holiday-and-school-days-2025.json file which will be used to evaluate the banners.
+
+
+generate /public/planner-data/holiday-and-school-days-2025.json and /public/planner-data/holiday-and-school-days-2026.json files according to available data on the internet for 2025 and 2026 for area of Palm Beach Gardens and Jupiter FL. structure those data according to county name and date range properties which should have same approach and naming format like surges-2025.json and surges-2026.json files.
+
+Add a special banner on top of the table for /planner page by evaluating 3 days to today's date against any holiday and school schedule. If that day is a holiday or school schedule, the banner should be displayed about the name of the holiday or school schedule. The banner should have a close button that will close the banner and not show again for 24 hours. and banner will continue to display for the next 3 days until the condition is no longer met. each condition should have its owne banner, i.e. school days, summer break, etc for its own, but holiday should be its own banner, and they will stack against each other.
+
+
+
+
+
+
+
+
+
