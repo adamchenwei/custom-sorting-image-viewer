@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/services/imageService.ts
 interface SortOptions {
   startDate: string;
@@ -7,16 +8,16 @@ interface SortOptions {
   weeks: string[];
 }
 
-interface ImageToMove {
+interface ImageItem {
   assetPath: string;
   fileName: string;
 }
 
-export async function moveImages(
-  images: ImageToMove[],
+export const moveImages = async (
+  images: ImageItem[],
   targetPath: string,
   sortOptions?: SortOptions
-): Promise<{ success: boolean; data?: any[] }> {
+): Promise<{ success: boolean; data?: any[]; error?: string }> => {
   try {
     console.log('Sending bulk move request for:', { images, targetPath, sortOptions });
     
@@ -43,23 +44,23 @@ export async function moveImages(
       success: true,
       data: result.newData
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in moveImages service:', error);
     throw error;
   }
 }
-export async function deleteImages(
-  images: { assetPath: string; fileName: string }[]
-): Promise<boolean> {
+
+export const deleteImages = async (images: unknown): Promise<{ success: boolean; error?: string }> => {
+  const typedImages = images as Array<{ assetPath: string; fileName: string }>;
   try {
-    console.log('Sending bulk delete request for:', images);
+    console.log('Sending bulk delete request for:', typedImages);
     
     const response = await fetch('/api/images/delete', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ images }),
+      body: JSON.stringify({ images: typedImages }),
     });
 
     const result = await response.json();
@@ -70,9 +71,11 @@ export async function deleteImages(
     }
 
     console.log('Bulk delete response:', result);
-    return true;
-  } catch (error) {
-    console.error('Error in deleteImages service:', error);
-    throw error;
+    return {
+      success: true
+    };
+  } catch (error: unknown) {
+    console.error('Error deleting images:', error);
+    return { success: false, error: String(error) };
   }
 }

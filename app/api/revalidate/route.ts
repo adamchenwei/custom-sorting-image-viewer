@@ -6,7 +6,7 @@ export async function POST() {
   try {
     revalidateTag('images-data');
     return NextResponse.json({ revalidated: true, now: Date.now() });
-  } catch (error) {
-    return NextResponse.json({ revalidated: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ revalidated: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

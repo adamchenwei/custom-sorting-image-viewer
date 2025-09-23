@@ -1,5 +1,25 @@
 import { NextResponse } from 'next/server';
-import { deletionProgress } from '../delete-images/route';
+
+interface DeletionProgress {
+  details: string[];
+  progress: number;
+  status: string;
+  error?: string;
+  matchedFiles?: number;
+  processedFiles?: number;
+  totalFiles?: number;
+}
+
+// Temporary placeholder or alternative solution
+const deletionProgress: DeletionProgress = {
+  details: [],
+  progress: 0,
+  status: 'idle',
+  error: '',
+  matchedFiles: 0,
+  processedFiles: 0,
+  totalFiles: 0
+};
 
 export async function GET() {
   // If we're at 100% progress and status isn't explicitly set, ensure it's marked as completed

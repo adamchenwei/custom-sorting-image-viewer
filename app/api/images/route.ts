@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { revalidateTag } from 'next/cache';
 
 // Enable caching but allow revalidation
 export const dynamic = 'force-dynamic';
@@ -15,7 +14,6 @@ export async function GET() {
     return NextResponse.json(data, {
       headers: {
         'Cache-Control': 's-maxage=31536000',
-        'tags': ['images-data']
       }
     });
   } catch (error) {

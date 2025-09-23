@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import sharp from 'sharp';
 
 // Store deletion progress globally (in a real app, use a proper state management solution)
-export let deletionProgress = {
+const deletionProgress = {
   progress: 0,
   error: null as string | null,
   status: 'idle' as 'idle' | 'processing' | 'completed',
@@ -43,18 +44,16 @@ export async function POST(request: Request) {
     }
 
     // Reset progress
-    deletionProgress = {
-      progress: 0,
-      error: null,
-      status: 'processing',
-      matchedFiles: [],
-      processedFiles: 0,
-      totalFiles: 0,
-      details: []
-    };
+    deletionProgress.progress = 0;
+    deletionProgress.error = null;
+    deletionProgress.status = 'processing';
+    deletionProgress.matchedFiles = [];
+    deletionProgress.processedFiles = 0;
+    deletionProgress.totalFiles = 0;
+    deletionProgress.details = [];
 
     // Start deletion process asynchronously
-    handleDeletion(percentage, folder).catch(error => {
+    handleDeletion(percentage, folder).catch((error) => {
       console.error('Deletion process failed:', error);
       deletionProgress.error = error.message;
       deletionProgress.status = 'completed';
@@ -72,7 +71,6 @@ export async function POST(request: Request) {
 
 async function analyzeRedPercentage(buffer: Buffer): Promise<number> {
   const image = sharp(buffer);
-  const metadata = await image.metadata();
   const { data, info } = await image
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -118,35 +116,40 @@ async function handleDeletion(maxPercentage: number, folderPath: string) {
     console.log('Found image files:', imageFiles);
     deletionProgress.totalFiles = imageFiles.length;
 
-    for (const file of imageFiles) {
-      try {
-        const filePath = path.join(absolutePath, file);
-        console.log('Processing file:', filePath);
+    const deleteImages = async (files: string[]): Promise<{ success: boolean; error?: string }> => {
+      for (const file of files) {
+        try {
+          const filePath = path.join(absolutePath, file);
+          console.log('Processing file:', filePath);
 
-        const imageBuffer = await fs.readFile(filePath);
-        const redPercentage = await analyzeRedPercentage(imageBuffer);
+          const imageBuffer = await fs.readFile(filePath);
+          const redPercentage = await analyzeRedPercentage(imageBuffer);
 
-        const detail = `File ${file}: Red percentage = ${redPercentage}% (Threshold: ≤ ${maxPercentage}%)`;
-        console.log(detail);
-        deletionProgress.details.push(detail);
+          const detail = `File ${file}: Red percentage = ${redPercentage}% (Threshold: ≤ ${maxPercentage}%)`;
+          console.log(detail);
+          deletionProgress.details.push(detail);
 
-        // Delete if red percentage is less than or equal to the threshold
-        if (redPercentage <= maxPercentage) {
-          console.log(`File ${file} has red percentage below or equal to threshold, deleting...`);
-          await fs.unlink(filePath);
-          deletionProgress.matchedFiles.push(file);
-          console.log(`File ${file} deleted successfully`);
-        } else {
-          console.log(`File ${file} has red percentage above threshold, keeping file`);
+          // Delete if red percentage is less than or equal to the threshold
+          if (redPercentage <= maxPercentage) {
+            console.log(`File ${file} has red percentage below or equal to threshold, deleting...`);
+            await fs.unlink(filePath);
+            deletionProgress.matchedFiles.push(file);
+            console.log(`File ${file} deleted successfully`);
+          } else {
+            console.log(`File ${file} has red percentage above threshold, keeping file`);
+          }
+
+          deletionProgress.processedFiles++;
+          deletionProgress.progress = Math.round((deletionProgress.processedFiles / deletionProgress.totalFiles) * 100);
+        } catch (err: any) {
+          console.error(`Error processing file ${file}:`, err);
+          deletionProgress.details.push(`Error processing ${file}: ${err instanceof Error ? err.message : String(err)}`);
         }
-
-        deletionProgress.processedFiles++;
-        deletionProgress.progress = Math.round((deletionProgress.processedFiles / deletionProgress.totalFiles) * 100);
-      } catch (err) {
-        console.error(`Error processing file ${file}:`, err);
-        deletionProgress.details.push(`Error processing ${file}: ${err.message}`);
       }
-    }
+      return { success: true };
+    };
+
+    await deleteImages(imageFiles);
 
     console.log('Deletion process completed');
     console.log('Matched and deleted files:', deletionProgress.matchedFiles);

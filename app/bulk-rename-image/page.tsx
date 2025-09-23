@@ -84,8 +84,8 @@ export default function BulkRenameImage() {
 
         {acceptedFiles.length > 0 && (
           <div className="mt-4 grid grid-cols-4 gap-4">
-            {acceptedFiles.map((file: any) => (
-              <div key={file.path} className="relative h-32">
+            {acceptedFiles.map((file: File) => (
+              <div key={(file as File & { path?: string }).path || file.name} className="relative h-32">
                 <Image
                   src={URL.createObjectURL(file)}
                   alt={file.name}

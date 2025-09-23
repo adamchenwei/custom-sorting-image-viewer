@@ -189,13 +189,13 @@ export async function POST(request: Request) {
       newData: sortedData
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Move API Error:', error);
     return NextResponse.json(
       { 
         success: false,
         error: 'Failed to move images',
-        details: error.message
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

@@ -8,6 +8,12 @@ const Button = ({
   onClick,
   className = "",
   variant = "primary",
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+  className?: string;
+  variant?: "primary" | "outline";
 }) => {
   const baseStyles =
     "px-4 py-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
@@ -28,7 +34,7 @@ const Button = ({
   );
 };
 
-const Input = ({ label, error, ...props }) => (
+const Input = ({ label, error, ...props }: { label?: string; error?: string; type?: string; min?: string; max?: string; value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder?: string; disabled?: boolean }) => (
   <div className="space-y-1">
     {label && (
       <label className="block text-sm font-medium text-gray-700">{label}</label>
@@ -41,7 +47,7 @@ const Input = ({ label, error, ...props }) => (
   </div>
 );
 
-const ProgressBar = ({ progress }) => (
+const ProgressBar = ({ progress }: { progress: number }) => (
   <div className="w-full bg-gray-200 rounded-full h-2">
     <div
       className="bg-blue-500 h-2 rounded-full transition-all duration-300"
@@ -50,7 +56,7 @@ const ProgressBar = ({ progress }) => (
   </div>
 );
 
-const Alert = ({ children, type = "error" }) => {
+const Alert = ({ children, type }: { children: React.ReactNode; type: 'error' | 'success' | 'info' }) => {
   const styles = {
     error: "bg-red-50 text-red-700 border-red-200",
     success: "bg-green-50 text-green-700 border-green-200",
@@ -72,7 +78,7 @@ const DeleteImagesPage = () => {
   const [matchedFiles, setMatchedFiles] = useState([]);
   const [processedFiles, setProcessedFiles] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
-  const [pollId, setPollId] = useState(null);
+  const [pollId, setPollId] = useState<NodeJS.Timeout | null>(null);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -121,7 +127,7 @@ const DeleteImagesPage = () => {
         const newPollId = setTimeout(pollProgress, 1000);
         setPollId(newPollId);
       }
-    } catch (err) {
+    } catch {
       setError("Failed to fetch progress");
       stopPolling();
     }
@@ -157,9 +163,9 @@ const DeleteImagesPage = () => {
 
       // Start polling
       pollProgress();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-      stopPolling();
+    } catch {
+      console.error('Error deleting images');
+      setError('Failed to delete images');
     }
   };
 
@@ -196,6 +202,7 @@ const DeleteImagesPage = () => {
               onChange={(e) => setPercentage(e.target.value)}
               placeholder="Enter percentage (0-100)"
               disabled={isDeleting}
+              error=""
             />
 
             <div className="space-y-1">

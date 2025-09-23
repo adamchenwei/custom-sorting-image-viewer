@@ -3,7 +3,7 @@ import { ImageAnalysisResult } from "@/types";
 export const analyzeRedPercentage = (imageData: ImageData): number => {
   const data = imageData.data;
   let redPixels = 0;
-  let totalPixels = imageData.width * imageData.height;
+  const totalPixels = imageData.width * imageData.height;
 
   for (let i = 0; i < data.length; i += 4) {
     const red = data[i];
