@@ -2,6 +2,11 @@
 trigger: always_on
 ---
 
+
+## App specific
+
+make sure use `test:ci` for full regression execution! it shouldn't server visual report when running in command line for cascade mode in windsurf.
+
 ## Nextjs Version
 Nextjs version should be in default using version of 14.2.13
 

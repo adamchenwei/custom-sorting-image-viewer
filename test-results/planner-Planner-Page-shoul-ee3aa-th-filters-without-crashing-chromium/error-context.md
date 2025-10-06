@@ -1,0 +1,124 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - alert [ref=e2]
+  - generic [ref=e3]:
+    - heading "Rideshare Event Planner" [level=1] [ref=e4]
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]: Year
+          - combobox "Year" [ref=e9]:
+            - option "2025" [selected]
+            - option "2026"
+        - generic [ref=e10]:
+          - generic [ref=e11]: Date
+          - textbox "Date" [ref=e12]: 2025-10-06
+        - generic [ref=e13]:
+          - generic [ref=e14]: City
+          - combobox "City" [ref=e15]:
+            - option "All Cities" [selected]
+            - option "Juno Beach"
+      - generic [ref=e16]:
+        - generic [ref=e17]: Day of Week
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - checkbox "sunday" [ref=e20]
+            - generic [ref=e21]: sunday
+          - generic [ref=e22]:
+            - checkbox "monday" [ref=e23]
+            - generic [ref=e24]: monday
+          - generic [ref=e25]:
+            - checkbox "tuesday" [ref=e26]
+            - generic [ref=e27]: tuesday
+          - generic [ref=e28]:
+            - checkbox "wednesday" [ref=e29]
+            - generic [ref=e30]: wednesday
+          - generic [ref=e31]:
+            - checkbox "thursday" [ref=e32]
+            - generic [ref=e33]: thursday
+          - generic [ref=e34]:
+            - checkbox "friday" [ref=e35]
+            - generic [ref=e36]: friday
+          - generic [ref=e37]:
+            - checkbox "saturday" [ref=e38]
+            - generic [ref=e39]: saturday
+      - generic [ref=e40]:
+        - generic [ref=e41]: Month
+        - generic [ref=e42]:
+          - generic [ref=e43]:
+            - checkbox "January" [ref=e44]
+            - generic [ref=e45]: January
+          - generic [ref=e46]:
+            - checkbox "February" [ref=e47]
+            - generic [ref=e48]: February
+          - generic [ref=e49]:
+            - checkbox "March" [ref=e50]
+            - generic [ref=e51]: March
+          - generic [ref=e52]:
+            - checkbox "April" [ref=e53]
+            - generic [ref=e54]: April
+          - generic [ref=e55]:
+            - checkbox "May" [ref=e56]
+            - generic [ref=e57]: May
+          - generic [ref=e58]:
+            - checkbox "June" [ref=e59]
+            - generic [ref=e60]: June
+          - generic [ref=e61]:
+            - checkbox "July" [ref=e62]
+            - generic [ref=e63]: July
+          - generic [ref=e64]:
+            - checkbox "August" [ref=e65]
+            - generic [ref=e66]: August
+          - generic [ref=e67]:
+            - checkbox "September" [ref=e68]
+            - generic [ref=e69]: September
+          - generic [ref=e70]:
+            - checkbox "October" [ref=e71]
+            - generic [ref=e72]: October
+          - generic [ref=e73]:
+            - checkbox "November" [ref=e74]
+            - generic [ref=e75]: November
+          - generic [ref=e76]:
+            - checkbox "December" [ref=e77]
+            - generic [ref=e78]: December
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e82]: Start Time
+            - textbox "Start Time" [ref=e83]
+          - generic [ref=e84]:
+            - generic [ref=e85]: End Time
+            - textbox "End Time" [ref=e86]
+        - generic [ref=e87]:
+          - generic [ref=e88]: School Schedule
+          - generic [ref=e89]:
+            - checkbox "During School Days" [ref=e90]
+            - generic [ref=e91]: During School Days
+          - generic [ref=e92]:
+            - checkbox "During Breaks" [ref=e93]
+            - generic [ref=e94]: During Breaks
+          - generic [ref=e95]:
+            - generic [ref=e96]: School County
+            - combobox "School County" [ref=e97]:
+              - option "Any County" [selected]
+              - option "Palm Beach County"
+        - generic [ref=e98]:
+          - generic [ref=e99]: Route Type
+          - combobox [ref=e100]:
+            - option "All" [selected]
+            - option "Public"
+            - option "Private"
+    - table [ref=e102]:
+      - rowgroup [ref=e103]:
+        - row "Date Time Location City Headcount Probability Details" [ref=e104]:
+          - cell "Date" [ref=e105]
+          - cell "Time" [ref=e106]
+          - cell "Location" [ref=e107]
+          - cell "City" [ref=e108]
+          - cell "Headcount" [ref=e109]
+          - cell "Probability" [ref=e110]
+          - cell "Details" [ref=e111]
+      - rowgroup
+```

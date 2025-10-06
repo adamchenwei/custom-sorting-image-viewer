@@ -147,9 +147,37 @@ I want to add a new prop for each entries of /Users/adamchenwei/www/custom-sorti
 make sure add a filter for that as well after "School Schedule" filter for /planner page.
 
 
-# 13 iteration (TODO, I think it maybe better to seperate school and holiday into different data proper and filters...)
+# 13 iteration
+
+For /planner page, I want to add additional fields to each entry so they can be filtered differently:
+
+add these new fields below:
+- everyMonth: {
+  1: boolean,
+  2: boolean,
+  3: boolean,
+  4: boolean,
+  5: boolean,
+  6: boolean,
+  7: boolean,
+  8: boolean,
+  9: boolean,
+  10: boolean,
+  11: boolean,
+  12: boolean,
+}
+  
+after that, can you help me evaluate data in /Users/adamchenwei/www/custom-sorting-image-viewer/public/planner-data files and see if there are duplicate ones that can be sorted into one entry with every week, every day, and every month is now made available? one example I can see is DuBois Park.
 
 refactor file name from /Users/adamchenwei/www/custom-sorting-image-viewer/public/planner-data/2025.json to /Users/adamchenwei/www/custom-sorting-image-viewer/public/planner-data/surges-2025.json, also for 2026. make sure app /planner page can handle this change.
+
+# 14 iteration
+Hour of Day filter should be removed but instead a filter base on startTime
+endTime should be added. and any hour of day related data should be removed from the app
+
+# 99 iteration DO NOT DO, DO NOT DO, DO NOT DO, DO NOT DO IT YET ! (NOTE, I think it maybe better to seperate school and holiday into different data proper and filters...)
+
+
 
 since mentioning holiday, I should for each entry in planner-data files for each year's surge json file, add a new prop called "schoolAndHoliday", it should have same data structure describing school and holiday in the /public/planner-data/holiday-and-school-days-2025.json file, they should should match with the name of the holiday in the /public/planner-data/holiday-and-school-days-2025.json file which will be used to evaluate the banners.
 

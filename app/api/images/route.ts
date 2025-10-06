@@ -10,12 +10,7 @@ export async function GET() {
     const dataPath = path.join(process.cwd(), 'public', 'data.json');
     const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
     
-    // Tag this response for cache invalidation
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 's-maxage=31536000',
-      }
-    });
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error reading data.json:', error);
     return NextResponse.json(

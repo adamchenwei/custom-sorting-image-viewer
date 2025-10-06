@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { format, addMinutes, addHours } from "date-fns";
 
 interface SortOptions {
@@ -10,6 +10,7 @@ interface SortOptions {
   onlySameMonth: boolean;
   aMonthBefore: boolean;
   aMonthAfter: boolean;
+  includeAllYears: boolean;
 }
 
 interface SorterModalProps {
@@ -18,7 +19,6 @@ interface SorterModalProps {
   initialOptions: SortOptions | null;
 }
 
-const SORT_OPTIONS_KEY = "imageSortOptions";
 const DAYS_OF_WEEK = [
   "Monday",
   "Tuesday",
@@ -31,19 +31,17 @@ const DAYS_OF_WEEK = [
 
 function getDefaultOptions(): SortOptions {
   const now = new Date();
-  const threeYearsAgo = new Date(now);
-  threeYearsAgo.setFullYear(now.getFullYear() - 3);
-  const later = addMinutes(now, 15);
-
+  
   return {
-    startDate: format(threeYearsAgo, "yyyy-MM-dd"),
+    startDate: "2015-01-01",
     endDate: format(now, "yyyy-MM-dd"),
-    startTime: format(now, "HH:mm"),
-    endTime: format(later, "HH:mm"),
-    weeks: [DAYS_OF_WEEK[now.getDay() === 0 ? 6 : now.getDay() - 1]],
-    onlySameMonth: false,
+    startTime: "00:00",
+    endTime: "23:59",
+    weeks: [],
+    onlySameMonth: true,
     aMonthBefore: false,
     aMonthAfter: false,
+    includeAllYears: false,
   };
 }
 
@@ -51,7 +49,6 @@ const DEFAULT_OPTIONS = getDefaultOptions();
 
 export function SorterModal({ onClose, onApply, initialOptions }: SorterModalProps) {
   const [options, setOptions] = useState<SortOptions>(initialOptions || DEFAULT_OPTIONS);
-
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -88,6 +85,13 @@ export function SorterModal({ onClose, onApply, initialOptions }: SorterModalPro
     setOptions((prev) => ({
       ...prev,
       onlySameMonth: !prev.onlySameMonth,
+    }));
+  };
+
+  const handleIncludeAllYearsChange = () => {
+    setOptions((prev) => ({
+      ...prev,
+      includeAllYears: !prev.includeAllYears,
     }));
   };
 
@@ -159,7 +163,8 @@ export function SorterModal({ onClose, onApply, initialOptions }: SorterModalPro
                 name="startDate"
                 value={options.startDate}
                 onChange={handleInputChange}
-                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                disabled={options.includeAllYears}
               />
             </div>
 
@@ -172,7 +177,8 @@ export function SorterModal({ onClose, onApply, initialOptions }: SorterModalPro
                 name="endDate"
                 value={options.endDate}
                 onChange={handleInputChange}
-                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                disabled={options.includeAllYears}
               />
             </div>
 
@@ -218,6 +224,21 @@ export function SorterModal({ onClose, onApply, initialOptions }: SorterModalPro
                 onChange={handleInputChange}
                 className="w-full border rounded p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+
+            <div>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.includeAllYears}
+                  onChange={handleIncludeAllYearsChange}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Include All Years</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1 ml-6">
+                Ignore the start/end dates and search for matching months across all years.
+              </p>
             </div>
 
             <div>

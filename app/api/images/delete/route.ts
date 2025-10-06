@@ -3,6 +3,14 @@ import { promises as fs } from 'fs';
 import fsSync from 'fs';
 import path from 'path';
 
+interface OptimizationRecord {
+  [key: string]: {
+    sourcePath: string;
+    optimizedPath: string;
+    lastModified: number;
+  };
+}
+
 interface DeleteRequest {
   images: {
     assetPath: string;
@@ -21,7 +29,7 @@ export async function POST(request: Request) {
     };
 
     const optimizationRecordPath = path.join(process.cwd(), 'public', 'optimization-record.json');
-    let optimizationRecords = JSON.parse(await fs.readFile(optimizationRecordPath, 'utf-8'));
+    const optimizationRecords: OptimizationRecord = JSON.parse(await fs.readFile(optimizationRecordPath, 'utf-8'));
 
     for (const image of body.images) {
       const fileBaseName = path.parse(image.fileName).name;
@@ -37,7 +45,7 @@ export async function POST(request: Request) {
           console.log(`Deleted original image: ${originalImagePath}`);
         }
         deletedSuccessfully = true;
-      } catch (error) {
+      } catch {
         console.warn(`Could not delete original image (may have already been deleted): ${originalImagePath}`);
         // If original is gone, we can still proceed to delete optimized and records
         deletedSuccessfully = true;
@@ -49,7 +57,7 @@ export async function POST(request: Request) {
           await fs.unlink(optimizedImagePath);
           console.log(`Deleted optimized image: ${optimizedImagePath}`);
         }
-      } catch (error) {
+      } catch {
         console.warn(`Could not delete optimized image: ${optimizedImagePath}`);
       }
 
@@ -92,7 +100,7 @@ export async function POST(request: Request) {
       remainingImages: updatedData
     });
     
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Delete API Error:', error);
     return NextResponse.json(
       { 
