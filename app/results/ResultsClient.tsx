@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Image from "next/image";
 import { format } from "date-fns";
@@ -46,6 +46,7 @@ export default function ResultsPageClient() {
   const [isOverlapMode, setIsOverlapMode] = useState(false);
   const [page, setPage] = useState(1);
   const itemsPerPage = 20;
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -154,8 +155,13 @@ export default function ResultsPageClient() {
   }, [handleKeyDown]);
 
   useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
     const handleScroll = () => {
-      const bottom = Math.ceil(window.innerHeight + window.pageYOffset) >= document.documentElement.scrollHeight;
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      const bottom = Math.ceil(scrollTop + clientHeight) >= scrollHeight - 10; // 10px threshold
+      
       if (bottom && !loading && displayedImages.length < images.length) {
         setLoading(true);
         setTimeout(() => {
@@ -170,8 +176,8 @@ export default function ResultsPageClient() {
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    scrollContainer.addEventListener("scroll", handleScroll);
+    return () => scrollContainer.removeEventListener("scroll", handleScroll);
   }, [page, loading, images, displayedImages]);
 
   const handleImageSelect = (
@@ -482,7 +488,7 @@ export default function ResultsPageClient() {
         </div>
 
         {/* Scrollable content section */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4">
           <div className="space-y-2">
             {displayedImages.length === 0 && !loading && (
               <div className="p-2 text-gray-500">
