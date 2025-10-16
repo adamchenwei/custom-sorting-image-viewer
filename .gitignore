@@ -8,6 +8,8 @@
 
 # testing
 /coverage
+/test-results
+.optimization-cache.json
 
 # next.js
 /.next/

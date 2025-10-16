@@ -5,7 +5,7 @@
   "scripts": {
     "start": "next start -p 3087",
     "lint": "next lint",
-    "process-images": "ts-node scripts/process-images-cli.ts",
+    "process-images": "ts-node scripts/run-image-processing.ts",
     "dev1": "npm run process-images && next dev -p 3099",
     "dev": "npm run process-images && next dev",
     "prompt": "./scripts/consolidate-app-custom-sorting-image-viewer.sh ./app/ --exclude node_modules dist",

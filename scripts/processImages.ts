@@ -12,7 +12,7 @@ export interface OptimizationRecord {
   };
 }
 
-interface ImageData {
+export interface ImageData {
   fileName: string;
   fileFormat: string;
   yyyy: number;
@@ -90,7 +90,8 @@ export function extractDateTimeFromFileName(fileName: string): ImageData | null 
 export async function processImagesDirectory(
   dirPath: string,
   baseDir: string,
-  optimizationRecords: OptimizationRecord
+  optimizationRecords: OptimizationRecord,
+  existingFileNames: Set<string> = new Set()
 ): Promise<{ items: ImageData[], summary: ProcessingSummary, updatedRecords: OptimizationRecord }> {
   const items: ImageData[] = [];
   const summary: ProcessingSummary = {
@@ -112,7 +113,7 @@ export async function processImagesDirectory(
       const stat = fs.statSync(fullPath);
 
       if (stat.isDirectory()) {
-        const subDirResult = await processImagesDirectory(fullPath, baseDir, updatedRecords);
+        const subDirResult = await processImagesDirectory(fullPath, baseDir, updatedRecords, existingFileNames);
         items.push(...subDirResult.items);
         summary.processedFiles.push(...subDirResult.summary.processedFiles);
         summary.unprocessedFiles.push(...subDirResult.summary.unprocessedFiles);
@@ -120,18 +121,25 @@ export async function processImagesDirectory(
       } else {
         const fileExt = path.extname(file).toLowerCase();
         const fileBaseName = path.parse(file).name;
+
+        if (existingFileNames.has(fileBaseName)) {
+          console.log(`Skipping ${file} because it already exists in data.json.`);
+          continue;
+        }
+
         if (updatedRecords[fileBaseName]) {
-          console.log(`Skipping ${file} as it is already in the optimization record.`);
+          console.log(`Skipping image optimization for ${file} as it's already in the cache.`);
           const imageData = extractDateTimeFromFileName(file);
           if (imageData) {
             const optimizedFileName = `${fileBaseName}.webp`;
             const optimizedFilePath = path.join(optimizedDir, optimizedFileName);
-            const relativePath = path.relative(baseDir, optimizedFilePath);
-            imageData.assetPath = '/' + relativePath.replace(/\\/g, '/');
-            items.push(imageData);
-            summary.processedFiles.push(file);
+            if (fs.existsSync(optimizedFilePath)) {
+              const relativePath = path.relative(baseDir, optimizedFilePath);
+              imageData.assetPath = '/' + relativePath.replace(/\\/g, '/');
+              items.push(imageData); // Add to items to be included in the new data.json
+              summary.processedFiles.push(file);
+            }
           }
-
         } else if (['.jpg', '.jpeg', '.png'].includes(fileExt)) {
           const imageData = extractDateTimeFromFileName(file);
 
