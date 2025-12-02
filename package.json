@@ -1,6 +1,6 @@
 {
   "name": "custom-sorting-image-viewer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "start": "next start -p 3087",
@@ -17,7 +17,9 @@
     "test:server": "npm run process-images && next dev --port 3087",
     "test:e2e": "playwright test",
     "test:ci": "npm run process-images && npm run build && source ~/.nvm/nvm.sh && nvm use && playwright test --reporter=list",
-    "test:e2e:report": "npm run test:e2e && lsof -t -i:9323 | xargs kill -9 || true && npx playwright show-report"
+    "test:e2e:report": "npm run test:e2e && lsof -t -i:9323 | xargs kill -9 || true && npx playwright show-report",
+    "get-total-files-count": "ts-node scripts/get-total-files-count.ts",
+    "delete-folder": "ts-node scripts/delete-folder.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.18.0",
