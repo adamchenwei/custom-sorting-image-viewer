@@ -129,6 +129,22 @@ export function SorterModal({ onClose, onApply, initialOptions }: SorterModalPro
     }));
   };
 
+  const handleIncrement15Minutes = () => {
+    setOptions((prev) => {
+      const [hours, minutes] = prev.startTime.split(":").map(Number);
+      const startDate = new Date();
+      startDate.setHours(hours, minutes, 0, 0);
+      const newStartTime = addMinutes(startDate, 15);
+      const newEndTime = addMinutes(newStartTime, 15);
+      
+      return {
+        ...prev,
+        startTime: format(newStartTime, "HH:mm"),
+        endTime: format(newEndTime, "HH:mm"),
+      };
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onApply(options);
@@ -154,6 +170,12 @@ export function SorterModal({ onClose, onApply, initialOptions }: SorterModalPro
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
+            {options.includeAllYears && (
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
+                <strong>Note:</strong> Date fields are disabled when &quot;Include All Years&quot; is selected.
+              </div>
+            )}
+            
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">
                 Start Date
@@ -194,6 +216,13 @@ export function SorterModal({ onClose, onApply, initialOptions }: SorterModalPro
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                   >
                     Next 15 Min
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleIncrement15Minutes}
+                    className="text-sm text-green-600 hover:text-green-700 font-medium"
+                  >
+                    +15m
                   </button>
                   <button
                     type="button"
