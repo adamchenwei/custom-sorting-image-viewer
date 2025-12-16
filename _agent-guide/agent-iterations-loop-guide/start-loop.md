@@ -67,7 +67,7 @@
   - Footer: References to issues, breaking changes, etc.
 
 ## Tooling Context:
-  - Looking for app-specific context preferences in `_agent-guide/app-user-input/context/app-definations-tool-context-selected.md` which should choose a specific context in `/app-definations/tools-context-options/` and make sure to obtain tooling context from them in detail.
+  - Looking for app-specific context preferences in `_agent-guide/app-user-input/context/app-definations-tool-context-selected.md` which should choose a specific context in `/app-specific-context/` and make sure to obtain tooling context from them in detail.
   - This includes checking for any existing configuration, dependencies, and setup instructions.
   - Pay special attention to any existing database schemas, API endpoints, or component libraries.
   - Note any existing testing strategies, linting rules, or deployment configurations.
