@@ -7,7 +7,7 @@ const bulkRenameService = new BulkRenameService(llmService);
 
 // Configure the API route options
 export const dynamic = 'force-dynamic';
-export const maxDuration = parseInt(process.env.API_TIMEOUT_MS || '300000', 10);
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {

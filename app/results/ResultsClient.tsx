@@ -438,7 +438,7 @@ export default function ResultsPageClient() {
       {/* Left side - Image list */}
       <div className="w-1/2 flex flex-col h-full">
         {/* Sticky menu section */}
-        <div className="sticky top-0 bg-white z-10 p-4 border-b">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 z-10 p-4 border-b dark:border-gray-700">
           <div className="flex space-x-2">
             <button
               onClick={() => setShowSorter(true)}
@@ -451,7 +451,7 @@ export default function ResultsPageClient() {
               className={`px-4 py-2 rounded flex items-center gap-2 ${
                 isOverlapMode
                   ? "bg-indigo-500 text-white hover:bg-indigo-600"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
               }`}
             >
               <Layers size={16} />
@@ -496,13 +496,13 @@ export default function ResultsPageClient() {
           </div>
 
           {error && (
-            <div className="mt-4 p-2 bg-red-100 text-red-700 rounded">
+            <div className="mt-4 p-2 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200 rounded">
               {error}
             </div>
           )}
 
           {loading && (
-            <div className="mt-4 p-2 bg-blue-100 text-blue-700 rounded">
+            <div className="mt-4 p-2 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 rounded">
               Loading...
             </div>
           )}
@@ -512,7 +512,7 @@ export default function ResultsPageClient() {
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4">
           <div className="space-y-2">
             {displayedImages.length === 0 && !loading && (
-              <div className="p-2 text-gray-500">
+              <div className="p-2 text-gray-500 dark:text-gray-400">
                 No images found matching the criteria
               </div>
             )}
@@ -522,11 +522,11 @@ export default function ResultsPageClient() {
                 key={image.assetPath}
                 className={`p-2 cursor-pointer rounded flex items-start group ${
                   selectedImage?.assetPath === image.assetPath
-                    ? "bg-blue-100 text-gray-500"
-                    : "hover:bg-gray-100 text-black"
+                    ? "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-200"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100"
                 } ${
                   selectedImages.has(image.assetPath)
-                    ? "bg-blue-50 text-black"
+                    ? "bg-blue-50 dark:bg-blue-950 text-gray-900 dark:text-gray-100"
                     : ""
                 }`}
                 onClick={(e) => handleImageSelect(image, e, false)}
@@ -557,8 +557,8 @@ export default function ResultsPageClient() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="break-words truncate">{image.fileName}</div>
-                  <div className="text-sm text-gray-500">
+                  <div className="break-words truncate text-gray-900 dark:text-gray-100">{image.fileName}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
                     {format(
                       new Date(
                         image.yyyy,
@@ -586,7 +586,7 @@ export default function ResultsPageClient() {
                           {holidays.map((holiday) => (
                             <span
                               key={holiday.id}
-                              className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-900"
+                              className="inline-flex items-center rounded bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs text-gray-900 dark:text-gray-100"
                             >
                               {holiday.id}
                             </span>
@@ -600,7 +600,7 @@ export default function ResultsPageClient() {
 
                 <div className="flex items-center ml-2 flex-shrink-0">
                   <button
-                    className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
+                    className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDelete(image, index);
@@ -610,7 +610,7 @@ export default function ResultsPageClient() {
                     <X size={16} />
                   </button>
                   <button
-                    className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 hover:text-white"
+                    className="p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedImages(new Set([image.assetPath]));
