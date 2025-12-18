@@ -1,0 +1,1 @@
+the +15 min option in the Sort button filter modal can you make it reusable and make it also work beside the "Overlap" button in the /results page? make it a button.
