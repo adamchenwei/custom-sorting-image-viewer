@@ -3,11 +3,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Image from "next/image";
 import { format } from "date-fns";
-import { ArrowRight, X, CheckSquare, Square, Layers } from "lucide-react";
+import { ArrowRight, X, CheckSquare, Square, Layers, Clock } from "lucide-react";
 import { moveImages, deleteImages } from "../services/imageService";
 import { MoveModal } from "../components/MoveModal";
 import { SorterModal } from "../components/SorterModal";
 import { isUSHoliday } from "../utils/holidays";
+import { increment15Minutes } from "../utils/timeIncrement";
 
 interface ImageData {
   fileName: string;
@@ -371,6 +372,18 @@ export default function ResultsPageClient() {
     setShowSorter(false);
   };
 
+  const handleIncrement15Minutes = () => {
+    if (!currentSortOptions) return;
+    
+    const { startTime, endTime } = increment15Minutes(currentSortOptions.startTime);
+    const updatedOptions: SortOptions = {
+      ...currentSortOptions,
+      startTime,
+      endTime,
+    };
+    handleApplySort(updatedOptions);
+  };
+
   const renderImageViewer = () => {
     if (isOverlapMode && selectedImages.size > 0) {
       const selectedImagesList = Array.from(selectedImages)
@@ -443,6 +456,14 @@ export default function ResultsPageClient() {
             >
               <Layers size={16} />
               {isOverlapMode ? "Single" : "Overlap"}
+            </button>
+            <button
+              onClick={handleIncrement15Minutes}
+              className="px-4 py-2 rounded flex items-center gap-2 bg-green-500 text-white hover:bg-green-600"
+              title="Increment time range by 15 minutes"
+            >
+              <Clock size={16} />
+              +15m
             </button>
             {selectedImages.size > 0 && (
               <>

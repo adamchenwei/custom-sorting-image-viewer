@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { format, addMinutes, addHours } from "date-fns";
+import { increment15Minutes } from "../utils/timeIncrement";
 
 interface SortOptions {
   startDate: string;
@@ -131,16 +132,11 @@ export function SorterModal({ onClose, onApply, initialOptions }: SorterModalPro
 
   const handleIncrement15Minutes = () => {
     setOptions((prev) => {
-      const [hours, minutes] = prev.startTime.split(":").map(Number);
-      const startDate = new Date();
-      startDate.setHours(hours, minutes, 0, 0);
-      const newStartTime = addMinutes(startDate, 15);
-      const newEndTime = addMinutes(newStartTime, 15);
-      
+      const { startTime, endTime } = increment15Minutes(prev.startTime);
       return {
         ...prev,
-        startTime: format(newStartTime, "HH:mm"),
-        endTime: format(newEndTime, "HH:mm"),
+        startTime,
+        endTime,
       };
     });
   };
