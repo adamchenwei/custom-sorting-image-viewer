@@ -507,19 +507,27 @@ export const handler = async (event) => {
 
 ```bash
 # .env.local
+
+# AWS Configuration
+# NOTE: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are NOT required
+# if AWS CLI is configured (~/.aws/credentials). The SDK uses the
+# default credential provider chain automatically.
 AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=AKIA...
-AWS_SECRET_ACCESS_KEY=...
 
 # S3
-S3_BUCKET_RAW=your-app-images-raw
-S3_BUCKET_PROCESSED=your-app-images-processed
+S3_BUCKET_RAW=custom-sorting-images-raw
+S3_BUCKET_PROCESSED=custom-sorting-images-processed
 
 # CloudFront
-CLOUDFRONT_DOMAIN=https://d1234567890.cloudfront.net
-CLOUDFRONT_KEY_PAIR_ID=K1234567890
-CLOUDFRONT_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n..."
+CLOUDFRONT_DOMAIN=https://d105g9g8xzllmy.cloudfront.net
+CLOUDFRONT_KEY_PAIR_ID=K3PLZDT1T5TS9R
+CLOUDFRONT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
 ```
+
+**Credential Provider Chain Priority:**
+1. `~/.aws/credentials` file (from `aws configure`)
+2. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
+3. IAM instance role (for EC2/Lambda)
 
 ---
 
@@ -561,3 +569,54 @@ The implementation can be completed in 3-5 days with the phased approach outline
 ---
 
 *Report generated: December 23, 2024*
+
+---
+
+## 12. Implementation Status
+
+### ✅ Completed (Phase 1 & 2)
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| **S3 Bucket (Raw)** | ✅ Created | `custom-sorting-images-raw` |
+| **S3 Bucket (Processed)** | ✅ Created | `custom-sorting-images-processed` |
+| **CloudFront Distribution** | ✅ Created | `E16TTNPZPU9T8Z` |
+| **CloudFront Domain** | ✅ Active | `https://d105g9g8xzllmy.cloudfront.net` |
+| **Origin Access Control** | ✅ Configured | `E1BOMWU9FBLPBK` |
+| **Signed URL Key Pair** | ✅ Generated | `K3PLZDT1T5TS9R` |
+| **S3 Bucket Policy** | ✅ Applied | CloudFront OAC only |
+| **API Route: Signed URL** | ✅ Created | `/api/cloudfront/signed-url` |
+| **API Route: Upload URL** | ✅ Created | `/api/cloudfront/upload-url` |
+| **SecureImage Component** | ✅ Created | `app/components/SecureImage.tsx` |
+| **AWS SDK Installed** | ✅ Done | `@aws-sdk/client-s3`, `@aws-sdk/cloudfront-signer` |
+
+### ⏳ Pending (Phase 3+)
+
+| Task | Description |
+|------|-------------|
+| **App Refactor** | Migrate existing app from `/public` folder to CloudFront |
+| **Image Migration** | Sync existing images to S3 |
+| **Android Upload Pipeline** | Create upload service for Android devices |
+| **Image Optimization Lambda** | Optional: Server-side optimization |
+
+### Files Created
+
+```
+app/
+├── api/cloudfront/
+│   ├── signed-url/route.ts    # GET/POST signed URLs
+│   └── upload-url/route.ts    # Upload pre-signed URLs
+├── components/
+│   └── SecureImage.tsx        # React component for secure images
+└── services/
+    ├── cloudfront.ts          # Signed URL generation
+    └── s3.ts                  # S3 operations
+
+aws/                           # AWS config files (gitignored keys)
+├── cloudfront-distribution-config.json
+├── s3-bucket-policy.json
+└── keys/                      # Private keys (gitignored)
+
+_DOCS/
+└── AWS_SETUP.md               # Setup documentation
+```
