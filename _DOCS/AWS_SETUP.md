@@ -25,10 +25,8 @@ This document describes the AWS infrastructure setup for serving images securely
 Add to `.env`:
 
 ```bash
-# AWS Configuration
+# AWS Configuration (uses ~/.aws/credentials from CLI by default)
 AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your_access_key_here
-AWS_SECRET_ACCESS_KEY=your_secret_key_here
 
 # S3 Buckets
 S3_BUCKET_RAW=custom-sorting-images-raw
