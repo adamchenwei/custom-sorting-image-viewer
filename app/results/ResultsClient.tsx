@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import Image from "next/image";
+import { SmartImage } from "@/components/SmartImage";
 import { format } from "date-fns";
 import { ArrowRight, X, CheckSquare, Square, Layers } from "lucide-react";
 import { moveImages, deleteImages } from "../services/imageService";
@@ -387,15 +387,15 @@ export default function ResultsPageClient() {
                 zIndex: selectedImagesList.length - index,
               }}
             >
-              <Image
-                src={image.assetPath}
+              <SmartImage
+                assetPath={image.assetPath}
                 alt={image.fileName}
                 fill
                 className="mix-blend-multiply"
                 style={{
                   objectFit: "contain",
                   opacity: Math.max(0.7 - index * 0.15, 0.1).toString(),
-                  filter: `brightness(${1.2 + index * 0.1})`, // Slightly brighten to compensate
+                  filter: `brightness(${1.2 + index * 0.1})`,
                 }}
                 priority={index === 0}
               />
@@ -406,8 +406,8 @@ export default function ResultsPageClient() {
     }
 
     return selectedImage ? (
-      <Image
-        src={selectedImage.assetPath}
+      <SmartImage
+        assetPath={selectedImage.assetPath}
         alt={selectedImage.fileName}
         fill
         style={{ objectFit: "contain" }}
@@ -525,11 +525,10 @@ export default function ResultsPageClient() {
                 </div>
 
                 <div className="flex-shrink-0 mr-3 relative w-16 h-16">
-                  <Image
-                    src={image.assetPath}
+                  <SmartImage
+                    assetPath={image.assetPath}
                     alt={image.fileName}
                     fill
-                    sizes="64px"
                     className="rounded object-cover"
                     priority={index < 10}
                   />
