@@ -59,7 +59,7 @@ test('should load more images when scrolling down (infinite scroll)', async ({ p
   }
 });
 
-test('should increment startTime and endTime by 15 minutes when clicking +15m button', async ({ page }) => {
+test('should increment startTime and endTime by 15 minutes when clicking +15m button in modal', async ({ page }) => {
   // Navigate to the results page
   await page.goto('/results');
 
@@ -76,8 +76,8 @@ test('should increment startTime and endTime by 15 minutes when clicking +15m bu
   const initialStartTime = await page.inputValue('input[name="startTime"]');
   const initialEndTime = await page.inputValue('input[name="endTime"]');
 
-  // Click the "+15m" button to increment by 15 minutes
-  await page.click('button:has-text("+15m")');
+  // Click the "+15m" button inside the modal (in the form)
+  await page.locator('form button:has-text("+15m")').click();
 
   // Get the new start and end times
   const newStartTime = await page.inputValue('input[name="startTime"]');
@@ -102,7 +102,7 @@ test('should increment startTime and endTime by 15 minutes when clicking +15m bu
   expect(newEndTotalMins).toBe(expectedEndMins);
 });
 
-test('should update URL params after applying +15m increment', async ({ page }) => {
+test('should update URL params after applying +15m increment in modal', async ({ page }) => {
   // Set larger viewport to ensure modal is fully visible
   await page.setViewportSize({ width: 1280, height: 900 });
 
@@ -113,8 +113,8 @@ test('should update URL params after applying +15m increment', async ({ page }) 
   await page.click('button:has-text("Sort")');
   await page.waitForSelector('text=Sort Options');
 
-  // Click the "+15m" button
-  await page.click('button:has-text("+15m")');
+  // Click the "+15m" button inside the modal (in the form)
+  await page.locator('form button:has-text("+15m")').click();
 
   // Click Apply button using evaluate to bypass viewport issues
   await page.evaluate(() => {
@@ -131,4 +131,65 @@ test('should update URL params after applying +15m increment', async ({ page }) 
   expect(url).toContain('15'); // 10:15
   expect(url).toContain('endTime=10');
   expect(url).toContain('30'); // 10:30
+});
+
+test('should have +15m button visible on results page beside Overlap button', async ({ page }) => {
+  // Navigate to the results page with time params so currentSortOptions is set
+  await page.goto('/results?startTime=10:00&endTime=10:15&includeAllYears=true');
+
+  // Wait for the page to load
+  await page.waitForSelector('button:has-text("Sort")');
+
+  // Check that the +15m button exists on the results page (not in modal)
+  const plus15mButton = page.locator('button:has-text("+15m")').first();
+  await expect(plus15mButton).toBeVisible();
+
+  // Verify it's next to the Overlap button by checking both exist in the same container
+  const overlapButton = page.locator('button:has-text("Overlap")');
+  await expect(overlapButton).toBeVisible();
+
+  // Both buttons should be visible on the page simultaneously (not in modal)
+  const sortButton = page.locator('button:has-text("Sort")');
+  await expect(sortButton).toBeVisible();
+});
+
+test('should have +15m button in Sort modal', async ({ page }) => {
+  // Navigate to the results page
+  await page.goto('/results');
+
+  // Open the sorter modal by clicking the Sort button
+  await page.click('button:has-text("Sort")');
+
+  // Wait for the modal to appear
+  await page.waitForSelector('text=Sort Options');
+
+  // Check that the +15m button exists in the modal (inside the form)
+  const plus15mButton = page.locator('form button:has-text("+15m")');
+  await expect(plus15mButton).toBeVisible();
+
+  // Verify it's in the modal by checking it's near the "Next 15 Min" and "Next 1 Hour" buttons
+  const next15MinButton = page.locator('button:has-text("Next 15 Min")');
+  await expect(next15MinButton).toBeVisible();
+
+  const next1HourButton = page.locator('button:has-text("Next 1 Hour")');
+  await expect(next1HourButton).toBeVisible();
+});
+
+test('should update URL when clicking +15m button on results page', async ({ page }) => {
+  // Navigate to the results page with initial time params
+  await page.goto('/results?startTime=10:00&endTime=10:15&includeAllYears=true');
+
+  // Wait for the page to load
+  await page.waitForSelector('button:has-text("+15m")');
+
+  // Click the +15m button on the results page (not in modal)
+  await page.click('button:has-text("+15m")');
+
+  // Wait for URL to update
+  await page.waitForURL(/startTime=10%3A15/);
+
+  // Verify URL contains updated time params
+  const url = page.url();
+  expect(url).toContain('startTime=10%3A15'); // 10:15
+  expect(url).toContain('endTime=10%3A30'); // 10:30
 });

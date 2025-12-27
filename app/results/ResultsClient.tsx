@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SmartImage } from "@/components/SmartImage";
-import { format } from "date-fns";
+import { format, addMinutes } from "date-fns";
 import { ArrowRight, X, CheckSquare, Square, Layers } from "lucide-react";
 import { moveImages, deleteImages } from "../services/imageService";
 import { MoveModal } from "../components/MoveModal";
@@ -371,6 +371,24 @@ export default function ResultsPageClient() {
     setShowSorter(false);
   };
 
+  const handleIncrement15Minutes = () => {
+    if (!currentSortOptions) return;
+    
+    const [hours, minutes] = currentSortOptions.startTime.split(":").map(Number);
+    const startDate = new Date();
+    startDate.setHours(hours, minutes, 0, 0);
+    const newStartTime = addMinutes(startDate, 15);
+    const newEndTime = addMinutes(newStartTime, 15);
+    
+    const newOptions: SortOptions = {
+      ...currentSortOptions,
+      startTime: format(newStartTime, "HH:mm"),
+      endTime: format(newEndTime, "HH:mm"),
+    };
+    
+    handleApplySort(newOptions);
+  };
+
   const renderImageViewer = () => {
     if (isOverlapMode && selectedImages.size > 0) {
       const selectedImagesList = Array.from(selectedImages)
@@ -443,6 +461,13 @@ export default function ResultsPageClient() {
             >
               <Layers size={16} />
               {isOverlapMode ? "Single" : "Overlap"}
+            </button>
+            <button
+              onClick={handleIncrement15Minutes}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              disabled={!currentSortOptions}
+            >
+              +15m
             </button>
             {selectedImages.size > 0 && (
               <>

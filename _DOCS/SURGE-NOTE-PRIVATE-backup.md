@@ -1,10 +1,32 @@
-Create a detailed half hour by half hour driving schedule (from 4:00AM to 12:00PM, 12:00PM to 12:00AM) for maximum surge pricing potential in North Palm Beach, Palm Beach Gardens, Old Port Village, Bear's Club, Mallory Creek, Jupiter, Tequesta, and Lake Park.
+# SURGE PRICING OPTIMIZATION GUIDE
 
-- Make sure the searches are done for each half hour of the day, not just general search. 
-- Make sure taking into account the personal ride schedules.
-- Make sure do through research on all the events and activities in the area mentioned and may not aware of, do metion the additional resarch you have done.
+## OBJECTIVE
+date: ongoing
+time: 4:00AM - 12:00AM (midnight)
+description: Create detailed half-hour by half-hour driving schedule for maximum surge pricing potential
+tags: surge-optimization, rideshare, scheduling, route-planning
 
-Specific Search Topics:
+## COVERAGE AREAS
+tags: locations, service-area
+description: Primary service zones for surge monitoring
+- North Palm Beach
+- Palm Beach Gardens
+- Old Port Village
+- Bear's Club
+- Mallory Creek
+- Jupiter
+- Tequesta
+- Lake Park
+
+## SEARCH REQUIREMENTS
+tags: requirements, methodology
+description: Key requirements for surge analysis
+- Half-hour interval searches (not general)
+- Account for personal ride schedules
+- Research all local events and activities
+- Document additional research performed
+
+## SPECIFIC SEARCH TOPICS
 
 THe Routine Specs:
 - Starting location: North Palm Beach
@@ -656,12 +678,7 @@ Holiday Notes
 If it's a mother's day weekend and mother day lands on Sunday, its Saturday will be very very slow throughout the day except early early morning before 9am.
 
 
-School Days Year Round
-When its school days, meaning, not any holidays or vacations for students in middle and high school as well as college:
 
-
-Wed and Thursday 3pm to 4pm - Pointe MiddleTown Way, Palm Beach Gardens Pet Ride $10 tips To the Jewish School From the Dog Lady. Also Likely Surge Around At Same Time!!! Very high probability.
-MON
 Feb - BEG
 
 Best Early Morning and Throughout the day till late evening.

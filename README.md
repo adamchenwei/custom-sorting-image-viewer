@@ -20,6 +20,30 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Scripts
+
+This project includes custom scripts to help with development and file management.
+
+### Count Files in a Directory
+
+To count the total number of files in a specific folder, you can use the `get-total-files-count` script. This is useful for verifying the contents of a directory before or after an operation.
+
+**Usage:**
+
+```bash
+npm run get-total-files-count -- /path/to/your/folder
+```
+
+### Permanently Delete a Folder
+
+To permanently delete a folder and all of its contents, use the `delete-folder` script. This action is irreversible, so please use it with caution.
+
+**Usage:**
+
+```bash
+npm run delete-folder -- /path/to/your/folder
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
