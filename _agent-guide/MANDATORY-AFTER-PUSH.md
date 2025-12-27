@@ -5,6 +5,25 @@
 
 ## Steps (Copy-Paste These Commands)
 
+### Pre-Commit: Run Regression Tests
+**Before creating a commit, run regression tests to ensure no breaking changes.**
+
+**Refer to your tooling context file** (`_agent-guide/app-user-input/context/app-definations-tool-context-selected.md`) for:
+- Regression test command (e.g., `npm run test:regression:ci` for Node.js/Playwright)
+- Any environment setup required (e.g., nvm, virtual env)
+- Build requirements before testing
+
+**AI Agent Instruction:**
+1. Check the tooling context for the regression test command
+2. Run the regression tests
+3. If tests fail, fix the issues before proceeding with commit
+4. Only create commit message after all tests pass
+
+**Example (Node.js/Playwright):**
+```bash
+source ~/.nvm/nvm.sh && nvm use && npx playwright test --reporter=list
+```
+
 ### 0. Bump version number:
 **Before archiving, increment the version number to reflect the new changes.**
 
@@ -86,6 +105,7 @@ Every push must be followed by archiving. No exceptions.
 
 ## Quick Checklist
 
+- [ ] Run regression tests (per tooling context)
 - [ ] Just pushed code?
 - [ ] Bump version in version file (per tooling context)
 - [ ] Commit and push version bump
